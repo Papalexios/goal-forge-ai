@@ -2,14 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Type, FunctionDeclaration } from "@google/genai";
 import { decode, decodeAudioData, createBlob } from '../utils/audioUtils';
 import { Project, Task, Status, Priority } from '../types';
-
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-    throw new Error("API_KEY environment variable not set");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+import { getSettings } from '../services/settingsService';
 
 export type ConnectionState = 'idle' | 'connecting' | 'error';
 
@@ -93,7 +86,6 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
     const [aiTranscript, setAiTranscript] = useState('');
     
     const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
-    // FIX: Changed useRef initialization to use `null` as the initial value, which is a safer and more standard practice for refs that will be populated later.
     const audioContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
@@ -109,12 +101,10 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
     const cleanupAudio = useCallback(() => {
         if (scriptProcessorRef.current) {
             scriptProcessorRef.current.disconnect();
-            // FIX: Set ref to null to match its new type.
             scriptProcessorRef.current = null;
         }
         if (mediaStreamRef.current) {
             mediaStreamRef.current.getTracks().forEach(track => track.stop());
-            // FIX: Set ref to null to match its new type.
             mediaStreamRef.current = null;
         }
         if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
@@ -210,6 +200,16 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
         resetTranscripts();
         cleanupAudio();
         try {
+            const settings = getSettings();
+            const geminiConfig = settings.providers.gemini;
+            if (!geminiConfig?.apiKey) {
+                onError("Gemini API key is not configured. Please add it in the Settings page.");
+                setConnectionState('error');
+                cleanupAudio();
+                return;
+            }
+            const ai = new GoogleGenAI({ apiKey: geminiConfig.apiKey });
+            
             outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             
             const systemInstruction = `You are GoalForge AI, an expert project manager. The user's project plan is already created. Your role is to assist them in modifying it. Use 'add_task_to_plan' to add new tasks, 'edit_task_in_plan' to modify existing tasks (e.g., change priority, description, or status), and 'complete_subtask' to mark subtasks as complete. Use the provided task and subtask IDs for editing and completion. Keep your spoken responses concise, helpful, and encouraging. The current project context is: ${JSON.stringify(project)}`;
@@ -286,12 +286,10 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
     const stopListening = () => {
         if (scriptProcessorRef.current) {
             scriptProcessorRef.current.disconnect();
-            // FIX: Set ref to null to match its new type.
             scriptProcessorRef.current = null;
         }
         if (mediaStreamRef.current) {
             mediaStreamRef.current.getTracks().forEach(track => track.stop());
-            // FIX: Set ref to null to match its new type.
             mediaStreamRef.current = null;
         }
         if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
