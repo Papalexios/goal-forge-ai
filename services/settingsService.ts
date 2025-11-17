@@ -25,7 +25,7 @@ export const getSettings = (): Settings => {
         ...parsed,
         providers: {
             ...DEFAULT_SETTINGS.providers,
-            ...parsed.providers,
+            ...(parsed.providers || {}),
         }
       };
     }

@@ -24,7 +24,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // This effect ensures we have the latest settings from storage on mount
+    // This effect runs only on the client, after the initial render,
+    // ensuring localStorage is available before being accessed.
     const loadedSettings = settingsService.getSettings();
     setSettings(loadedSettings);
     setIsLoading(false);
