@@ -1,0 +1,7 @@
+{
+  "name": "GoalForge AI (001)",
+  "description": "An intelligent planner that transforms your high-level goals into detailed, actionable project plans in seconds using advanced AI, featuring voice interaction, drag-and-drop task management, and powerful export options.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
