@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Type, FunctionDeclaration } from "@google/genai";
+// FIX: Removed unexported member 'LiveSession'. The session object type will be handled by inference or 'any'.
+import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from "@google/genai";
 import { decode, decodeAudioData, createBlob } from '../utils/audioUtils';
 import { Project, Task, Status, Priority } from '../types';
 import { getSettings } from '../services/settingsService';
@@ -85,7 +86,8 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
     const [userTranscript, setUserTranscript] = useState('');
     const [aiTranscript, setAiTranscript] = useState('');
     
-    const sessionPromiseRef = useRef<Promise<LiveSession> | null>(null);
+    // FIX: Replaced 'Promise<LiveSession>' with 'Promise<any>' as LiveSession is not an exported type.
+    const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
@@ -151,8 +153,9 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
             for (const func of message.toolCall.functionCalls) {
                 let result = 'Function executed successfully.';
                 try {
+                    // FIX: Cast func.args to 'any' to prevent errors when accessing its properties, as its type is 'unknown'.
                     if (func.name === 'add_task_to_plan' && func.args) {
-                        const taskData = func.args.task;
+                        const taskData = (func.args as any).task;
                         if (taskData) {
                             const newTask: Task = {
                                 id: taskData.id || crypto.randomUUID(),
@@ -170,12 +173,12 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
                             onTaskAdded(newTask);
                         }
                     } else if (func.name === 'edit_task_in_plan' && func.args) {
-                        const { taskId, ...updates } = func.args;
+                        const { taskId, ...updates } = func.args as any;
                         if (taskId) {
                             onTaskEdited(taskId as string, updates as Partial<Task>);
                         }
                     } else if (func.name === 'complete_subtask' && func.args) {
-                        onSubtaskCompleted(func.args.taskId as string, func.args.subtaskId as string);
+                        onSubtaskCompleted((func.args as any).taskId as string, (func.args as any).subtaskId as string);
                     } else {
                         result = `Unknown function call: ${func.name}`;
                     }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GoalForge AI</title>
+    <title>GoalForge AI - An Unfair Advantage</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
@@ -67,13 +67,25 @@
 
       .animate-slide-in-up {
         animation: slide-in-up 0.7s ease-out forwards;
+        animation-fill-mode: forwards;
       }
 
       .stagger-1 { animation-delay: 100ms; }
       .stagger-2 { animation-delay: 200ms; }
       .stagger-3 { animation-delay: 300ms; }
       .stagger-4 { animation-delay: 400ms; }
+      .stagger-5 { animation-delay: 500ms; }
+      .stagger-6 { animation-delay: 600ms; }
+      .stagger-7 { animation-delay: 700ms; }
+      .stagger-8 { animation-delay: 800ms; }
 
+
+      .glass-pane {
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+      }
     </style>
   <script type="importmap">
 {

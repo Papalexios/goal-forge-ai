@@ -1,5 +1,75 @@
 import React from 'react';
 
+export const GoalForgeAILogo: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <defs>
+      <radialGradient id="goalForgeGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <stop offset="0%" stopColor="#A855F7" />
+        <stop offset="100%" stopColor="#6366F1" />
+      </radialGradient>
+      <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FDE047" />
+        <stop offset="100%" stopColor="#FB923C" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="47.5" fill="url(#goalForgeGradient)" />
+    <circle cx="50" cy="50" r="42.5" fill="#111827" />
+    <path d="M35 38 H65 C 70 38, 70 42, 65 42 L 55 42 L 55 62 L 60 62 C 65 62, 65 66, 60 66 H 40 C 35 66, 35 62, 40 62 L 45 62 L 45 42 L 35 42 C 30 42, 30 38, 35 38 Z" fill="#4F46E5" />
+    <path d="M40 66 C 35 66, 35 70, 40 70 H 60 C 65 70, 65 66, 60 66 H 40 Z" fill="#312E81"/>
+    <path d="M68 25 L71 32 L78 35 L71 38 L68 45 L65 38 L58 35 L65 32 Z" fill="url(#sparkGradient)" />
+    <path d="M28 65 L30 68 L33 65 L30 62 Z" fill="url(#sparkGradient)" opacity="0.7"/>
+  </svg>
+);
+
+
+export const AffiliateMarketingLogo: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M80 0L150.211 40V120L80 160L9.78887 120V40L80 0Z" fill="#27272A"/>
+    <path d="M125 55.4545L80 80L35 55.4545L80 30.9091L125 55.4545ZM80 129.091V80L125 55.4545V104.545L80 129.091Z" fill="url(#paint0_linear_footer_logo)"/>
+    <text x="80" y="85" fontFamily="sans-serif" fontSize="18" fill="white" textAnchor="middle" fontWeight="bold">AFFILIATE MARKETING</text>
+    <text x="80" y="105" fontFamily="sans-serif" fontSize="24" fill="white" textAnchor="middle" fontWeight="bold">for Success</text>
+    <defs>
+      <linearGradient id="paint0_linear_footer_logo" x1="80" y1="30.9091" x2="80" y2="129.091" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#A855F7"/>
+        <stop offset="1" stopColor="#6366F1"/>
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+export const BrainCircuitIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.1.39-1.99 1.03-2.69-.1-.25-.45-1.28.1-2.65 0 0 .84-.27 2.75 1.02.8-.22 1.65-.33 2.5-.33.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2Z"/>
+  </svg>
+);
+
+export const VoiceRecIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+    <line x1="12" y1="19" x2="12" y2="23"></line>
+  </svg>
+);
+
+export const KanbanIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+    <line x1="9" y1="3" x2="9" y2="21"></line>
+    <line x1="15" y1="3" x2="15" y2="21"></line>
+  </svg>
+);
+
+export const ExportIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="12" y1="18" x2="12" y2="12"></line>
+    <line x1="9" y1="15" x2="12" y2="12"></line>
+    <line x1="15" y1="15" x2="12" y2="12"></line>
+  </svg>
+);
+
+
 export const GeminiIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M5.71221 13.164C4.24419 10.1693 5.40059 6.55135 8.39529 5.08333C11.3899 3.61532 15.0079 4.77172 16.4759 7.76642" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -147,6 +217,6 @@ export const CogIcon: React.FC<{ className?: string }> = ({ className }) => (
       <path d="m17 3.34-1 1.73"/>
       <path d="m8 19.66 1-1.73"/>
       <path d="m7 20.66 1-1.73"/>
-      <path d="m16 4.34-1 1.73"/>
+      <path d="m16 4.34-1-1.73"/>
     </svg>
 );

@@ -1,4 +1,3 @@
-
 // Fix: Added type definitions for the Web Speech API as they are not included in TypeScript's standard DOM library.
 interface SpeechRecognitionErrorEvent extends Event {
   readonly error: string;
@@ -39,8 +38,6 @@ interface SpeechRecognition extends EventTarget {
   onerror: (event: SpeechRecognitionErrorEvent) => void;
 }
 
-// FIX: Removed duplicate `declare var` statements which caused identifier conflicts.
-// The Window interface is now used to declare these properties.
 
 // Fix: Augment the global Window interface to include SpeechRecognition APIs for TypeScript.
 // This is necessary because this file is a module and we need to modify the global scope.
@@ -55,31 +52,28 @@ declare global {
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-// Polyfill for browser compatibility
-// Fix: Correctly type window.SpeechRecognition and window.webkitSpeechRecognition.
-// FIX: Renamed the constant to avoid a naming conflict with the `SpeechRecognition` interface.
-const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-
 export const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
-  // Fix: Use the defined SpeechRecognition interface as the type for the ref.
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  
+  // FIX: Moved SpeechRecognitionAPI check inside the hook to prevent top-level errors
+  // on environments without `window` or `window.SpeechRecognition` during module import.
+  const SpeechRecognitionAPI = typeof window !== 'undefined' 
+    ? window.SpeechRecognition || window.webkitSpeechRecognition 
+    : null;
 
   useEffect(() => {
-    // FIX: Use the renamed constant to check for browser support.
     if (!SpeechRecognitionAPI) {
       console.error("Speech Recognition API is not supported in this browser.");
       return;
     }
 
-    // FIX: Use the renamed constant to create a new instance.
     const recognition = new SpeechRecognitionAPI();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    // Fix: Use the defined SpeechRecognitionEvent interface for the event type.
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
       let interimTranscript = '';
@@ -97,7 +91,6 @@ export const useSpeechRecognition = () => {
         setIsListening(false);
     };
     
-    // Fix: Use the defined SpeechRecognitionErrorEvent interface for the event type.
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
@@ -106,9 +99,11 @@ export const useSpeechRecognition = () => {
     recognitionRef.current = recognition;
 
     return () => {
-      recognition.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     };
-  }, []);
+  }, [SpeechRecognitionAPI]);
 
   const start = useCallback(() => {
     if (recognitionRef.current && !isListening) {
@@ -125,6 +120,5 @@ export const useSpeechRecognition = () => {
     }
   }, [isListening]);
 
-  // FIX: Use the renamed constant for the `hasSupport` check.
   return { isListening, transcript, start, stop, hasSupport: !!SpeechRecognitionAPI };
 };
