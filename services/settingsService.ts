@@ -2,7 +2,7 @@ import { Settings } from '../types';
 
 const SETTINGS_KEY = 'goalforge_settings_v1';
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   activeProvider: 'gemini',
   providers: {
     gemini: { apiKey: '', model: 'gemini-2.5-pro' },
@@ -40,7 +40,6 @@ export const saveSettings = (settings: Settings): void => {
   try {
     const settingsJson = JSON.stringify(settings);
     localStorage.setItem(SETTINGS_KEY, settingsJson);
-// FIX: Corrected syntax for the catch block.
   } catch (error) {
     console.error('Failed to save settings to localStorage', error);
   }

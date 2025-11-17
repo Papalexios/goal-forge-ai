@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Settings } from '../types';
 import * as settingsService from '../services/settingsService';
+import { DEFAULT_SETTINGS } from '../services/settingsService';
 
 interface SettingsContextType {
   settings: Settings;
@@ -9,7 +10,7 @@ interface SettingsContextType {
 }
 
 export const SettingsContext = createContext<SettingsContextType>({
-  settings: settingsService.getSettings(), // Initial default
+  settings: DEFAULT_SETTINGS,
   saveSettings: () => {},
   isLoading: true,
 });
@@ -19,7 +20,7 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
-  const [settings, setSettings] = useState<Settings>(settingsService.getSettings());
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
