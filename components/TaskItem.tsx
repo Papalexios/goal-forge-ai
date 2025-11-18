@@ -45,6 +45,11 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
 
     onUpdate({ ...task, subtasks: updatedSubtasks, status: newStatus });
   };
+
+  const handleStatusToggle = () => {
+    const newStatus = task.status === Status.Done ? Status.ToDo : Status.Done;
+    onUpdate({ ...task, status: newStatus });
+  };
   
   const handlePriorityCycle = () => {
     const priorities = [Priority.Low, Priority.Medium, Priority.High];
@@ -202,11 +207,29 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
       />
       <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:border-indigo-500 transition-all duration-200 shadow-md">
         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
-          <div>
-            <h3 className="text-lg font-bold text-white">{task.title}</h3>
-            <p className="text-gray-400 text-sm mt-1">{task.description}</p>
+          <div className="flex items-start gap-3 flex-grow">
+            <button
+                onClick={handleStatusToggle}
+                className={`flex-shrink-0 mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900 ${
+                    task.status === Status.Done
+                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-gray-500 hover:border-indigo-400 bg-transparent'
+                }`}
+                aria-label={task.status === Status.Done ? "Mark as not done" : "Mark as done"}
+            >
+                {task.status === Status.Done && (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                )}
+            </button>
+            <div>
+                <h3 className={`text-lg font-bold transition-colors ${task.status === Status.Done ? 'text-gray-500 line-through decoration-2' : 'text-white'}`}>{task.title}</h3>
+                <p className={`text-sm mt-1 transition-colors ${task.status === Status.Done ? 'text-gray-600' : 'text-gray-400'}`}>{task.description}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-4 flex-shrink-0 mt-2 sm:mt-0">
+          
+          <div className="flex items-center gap-4 flex-shrink-0 mt-2 sm:mt-0 pl-9 sm:pl-0">
             <button onClick={handlePriorityCycle} title="Cycle priority" className={`text-xs font-bold px-2 py-1 rounded-full text-white border transition-transform hover:scale-110 ${priorityColors[task.priority]}`}>
               {task.priority}
             </button>

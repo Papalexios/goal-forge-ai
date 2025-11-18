@@ -3,7 +3,7 @@ import { Project, Plan } from '../types';
 import * as storage from '../services/storageService';
 import * as gemini from '../services/geminiService';
 import { decode, decodeAudioData } from '../utils/audioUtils';
-import { TrashIcon, LoaderIcon, TtsIcon, StopIcon, SearchIcon, CogIcon, ClipboardCheckIcon } from './icons';
+import { TrashIcon, LoaderIcon, TtsIcon, StopIcon, SearchIcon, PlusIcon, ClipboardCheckIcon, SparklesIcon } from './icons';
 import GoogleCalendarSync from './GoogleCalendarSync';
 
 interface ProjectCardProps {
@@ -11,43 +11,37 @@ interface ProjectCardProps {
     onSelect: (id: string) => void;
     onDelete: (id:string) => void;
     progress: number;
-    completedSubtasks: number;
-    totalSubtasks: number;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect, onDelete, progress, completedSubtasks, totalSubtasks }) => {
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (window.confirm(`Are you sure you want to delete the project "${project.goal}"?`)) {
-            onDelete(project.id);
-        }
-    };
-
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect, onDelete, progress }) => {
     return (
         <div 
-            className="bg-gray-800/50 border border-gray-700 rounded-lg p-5 shadow-lg hover:shadow-indigo-500/20 hover:border-indigo-500 transition-all duration-300 cursor-pointer flex flex-col justify-between"
             onClick={() => onSelect(project.id)}
+            className="group relative bg-gray-800/40 backdrop-blur-md border border-white/5 rounded-2xl p-6 hover:bg-gray-800/60 hover:border-indigo-500/50 transition-all duration-300 cursor-pointer overflow-hidden"
         >
-            <div>
-                <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-lg text-white mb-2 pr-2">{project.goal}</h3>
-                    <button onClick={handleDelete} className="text-gray-500 hover:text-red-500 transition-colors flex-shrink-0">
-                        <TrashIcon className="w-5 h-5"/>
-                    </button>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/20 transition-colors"></div>
+            
+            <div className="flex justify-between items-start relative z-10">
+                <div>
+                    <h3 className="font-bold text-lg text-white group-hover:text-indigo-300 transition-colors truncate max-w-[200px]">{project.goal}</h3>
+                    <p className="text-xs text-gray-400 mt-1">Created {new Date(project.createdAt).toLocaleDateString()}</p>
                 </div>
-                <p className="text-xs text-gray-400 mb-4">
-                    Created: {new Date(project.createdAt).toLocaleDateString()}
-                </p>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); if(confirm('Delete?')) onDelete(project.id); }} 
+                    className="text-gray-600 hover:text-red-400 p-2 rounded-full hover:bg-white/5 transition-colors"
+                >
+                    <TrashIcon className="w-4 h-4"/>
+                </button>
             </div>
-            <div>
-                <div className="flex justify-between items-center mb-1 text-sm">
-                    <span className="text-gray-300">Progress</span>
-                    <span className="font-semibold text-indigo-300">{progress}%</span>
+
+            <div className="mt-6 relative z-10">
+                <div className="flex justify-between text-xs mb-2">
+                    <span className="text-gray-400">Completion</span>
+                    <span className="text-indigo-300 font-mono">{progress}%</span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2.5">
-                    <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2 text-right">{completedSubtasks} / {totalSubtasks} subtasks</p>
             </div>
         </div>
     );
@@ -60,8 +54,6 @@ interface DashboardProps {
   onShowDailyPlanner: () => void;
 }
 
-type SortOption = 'date_desc' | 'date_asc' | 'progress_desc' | 'progress_asc';
-
 const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onShowSettings, onShowDailyPlanner }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [dailyPlan, setDailyPlan] = useState<Plan>([]);
@@ -69,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
   const [summaryText, setSummaryText] = useState('');
   const [isSummaryPlaying, setIsSummaryPlaying] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState<SortOption>('date_desc');
+  
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
@@ -88,181 +80,144 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
 
   const handleAiSummary = async () => {
     if (!audioContextRef.current) return;
-
     if (isSummaryPlaying && audioSourceRef.current) {
         audioSourceRef.current.stop();
         setIsSummaryPlaying(false);
-        audioSourceRef.current = null;
         return;
     }
-
     setIsSummaryLoading(true);
     setSummaryText('');
     try {
-        const summaryResult = await gemini.getAiSummary(projects);
-        setSummaryText(summaryResult);
-        const base64Audio = await gemini.generateTtsAudio(`Here is your weekly summary: ${summaryResult}`);
+        const summary = await gemini.getAiSummary(projects);
+        setSummaryText(summary);
+        const audio = await gemini.generateTtsAudio(summary);
+        const buffer = await decodeAudioData(decode(audio), audioContextRef.current, 24000, 1);
+        if (audioContextRef.current.state === 'suspended') await audioContextRef.current.resume();
         
-        const audioData = decode(base64Audio);
-        const audioBuffer = await decodeAudioData(audioData, audioContextRef.current, 24000, 1);
-        
-        if (audioContextRef.current.state === 'suspended') {
-            await audioContextRef.current.resume();
-        }
-
         const source = audioContextRef.current.createBufferSource();
-        source.buffer = audioBuffer;
+        source.buffer = buffer;
         source.connect(audioContextRef.current.destination);
-        source.onended = () => {
-            setIsSummaryPlaying(false);
-            audioSourceRef.current = null;
-        };
+        source.onended = () => setIsSummaryPlaying(false);
         source.start(0);
-
         audioSourceRef.current = source;
         setIsSummaryPlaying(true);
-    } catch (error) {
-        console.error("Failed to get AI summary:", error);
-        setSummaryText(error instanceof Error ? error.message : "Could not generate AI summary. Please try again.");
+    } catch (e) {
+        console.error(e);
+        setSummaryText("AI Summary unavailable.");
     } finally {
         setIsSummaryLoading(false);
     }
   };
 
   const processedProjects = useMemo(() => {
-    const projectsWithProgress = projects.map(project => {
-      let total = 0;
-      let completed = 0;
-      project.plan.forEach(task => {
-        total += task.subtasks.length;
-        completed += task.subtasks.filter(st => st.completed).length;
-      });
-      const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-      return { ...project, progress, completedSubtasks: completed, totalSubtasks: total };
-    });
+    return projects.map(p => {
+      let total = p.plan.length || 1;
+      let completed = p.plan.filter(t => t.status === 'Done').length;
+      return { ...p, progress: Math.round((completed / total) * 100) };
+    }).filter(p => p.goal.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [projects, searchTerm]);
 
-    const filtered = projectsWithProgress.filter(p => p.goal.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    return filtered.sort((a, b) => {
-        switch(sortOption) {
-            case 'date_asc': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            case 'progress_desc': return b.progress - a.progress;
-            case 'progress_asc': return a.progress - b.progress;
-            case 'date_desc':
-            default:
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }
-    });
-  }, [projects, searchTerm, sortOption]);
+  const greeting = useMemo(() => {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good Morning";
+      if (hour < 18) return "Good Afternoon";
+      return "Good Evening";
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8 animate-slide-in-up opacity-0">
-      <div className="max-w-7xl mx-auto">
-        <header className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-500">
-                Project Dashboard
-            </h1>
-            <button onClick={onShowSettings} title="Settings" className="text-gray-400 hover:text-white transition-colors">
-                <CogIcon className="w-6 h-6"/>
-            </button>
-          </div>
-          <button
-            onClick={onCreateNew}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg text-md shadow-lg transform hover:scale-105 transition-all duration-300 cta-glow"
-            >
-            + Create New Plan
-          </button>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div className="md:col-span-2 bg-gray-800/50 border border-gray-700 rounded-lg p-5 shadow-lg">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <h2 className="text-xl font-bold text-white">Weekly AI Briefing</h2>
-                    <button
-                        onClick={handleAiSummary}
-                        disabled={isSummaryLoading || projects.length === 0}
-                        className="bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg text-sm shadow-lg transition-all duration-300 flex items-center gap-2 w-full sm:w-auto justify-center"
-                    >
-                        {isSummaryLoading ? <LoaderIcon className="w-5 h-5 animate-spin" /> : (isSummaryPlaying ? <StopIcon className="w-5 h-5" /> : <TtsIcon className="w-5 h-5" />)}
-                        <span>{isSummaryLoading ? 'Generating...' : isSummaryPlaying ? 'Stop Audio' : 'Generate & Play'}</span>
-                    </button>
-                </div>
-                <div className="mt-4 min-h-[60px]">
-                    {isSummaryLoading && !summaryText && <p className="text-gray-400 italic">AI is analyzing your progress...</p>}
-                    {summaryText ? (
-                        <p className="text-gray-300">{summaryText}</p>
-                    ) : (
-                        !isSummaryLoading && <p className="text-gray-400">Click the button to generate a summary of your week's progress and get suggestions for what's next.</p>
-                    )}
-                </div>
-            </div>
-             <div onClick={onShowDailyPlanner} className="bg-gray-800/50 border border-gray-700 rounded-lg p-5 shadow-lg flex flex-col justify-center items-center text-center hover:border-indigo-500 hover:shadow-indigo-500/20 transition-all duration-300 cursor-pointer">
-                <ClipboardCheckIcon className="w-8 h-8 text-indigo-400 mb-2"/>
-                <h2 className="text-xl font-bold text-white">Daily Planner</h2>
-                <p className="text-sm text-gray-400 mt-1">
-                    {dailyPlan.length > 0 ? `${dailyPlan.length} tasks for today` : "Plan your day"}
-                </p>
-            </div>
+    <div className="max-w-7xl mx-auto w-full space-y-8 p-2">
+      <header className="flex flex-col md:flex-row justify-between items-end gap-4 pb-4 border-b border-white/5">
+        <div>
+            <h1 className="text-5xl font-bold text-white tracking-tight mb-1">{greeting}, Builder.</h1>
+            <p className="text-gray-400">You have {projects.length} active projects and {dailyPlan.length} tasks for today.</p>
         </div>
-        
-        <GoogleCalendarSync />
+        <div className="flex gap-3">
+            <button onClick={onCreateNew} className="group flex items-center gap-2 bg-white text-black hover:bg-gray-200 font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+                <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300"/>
+                <span>New Project</span>
+            </button>
+        </div>
+      </header>
 
-        <div className="my-8 flex flex-col md:flex-row gap-4 justify-between items-center">
-            <div className="relative w-full md:max-w-md">
-                <input
-                    type="text"
-                    placeholder="Search projects..."
+      {/* Bento Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* AI Summary Widget - Large */}
+        <div className="md:col-span-2 bg-gradient-to-br from-indigo-900/40 to-purple-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none">
+                <SparklesIcon className="w-32 h-32 text-white"/>
+             </div>
+             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <SparklesIcon className="w-5 h-5 text-yellow-300"/> AI Insight
+             </h2>
+             <div className="min-h-[80px] mb-4">
+                {isSummaryLoading ? (
+                    <div className="flex items-center gap-2 text-indigo-300 animate-pulse">
+                        <LoaderIcon className="w-5 h-5 animate-spin"/> Analyzing your trajectory...
+                    </div>
+                ) : (
+                    <p className="text-lg text-indigo-100 leading-relaxed">
+                        {summaryText || "Ready to analyze your progress. Click the button to generate a strategic briefing."}
+                    </p>
+                )}
+             </div>
+             <button 
+                onClick={handleAiSummary} 
+                disabled={isSummaryLoading}
+                className="bg-white/10 hover:bg-white/20 border border-white/10 text-white py-2 px-4 rounded-lg text-sm font-semibold backdrop-blur-md transition-all flex items-center gap-2"
+             >
+                {isSummaryPlaying ? <StopIcon className="w-4 h-4"/> : <TtsIcon className="w-4 h-4"/>}
+                {isSummaryPlaying ? 'Stop Briefing' : 'Generate Briefing'}
+             </button>
+        </div>
+
+        {/* Daily Planner Widget - Medium */}
+        <div onClick={onShowDailyPlanner} className="cursor-pointer md:col-span-1 bg-gray-800/40 backdrop-blur-md border border-white/5 rounded-3xl p-6 hover:border-indigo-500/50 transition-all group relative overflow-hidden">
+             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+             <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="w-12 h-12 bg-green-500/20 rounded-2xl flex items-center justify-center text-green-400 mb-4 group-hover:scale-110 transition-transform">
+                    <ClipboardCheckIcon className="w-6 h-6"/>
+                </div>
+                <div>
+                    <h3 className="text-2xl font-bold text-white">{dailyPlan.length}</h3>
+                    <p className="text-gray-400 text-sm">Tasks Today</p>
+                </div>
+             </div>
+             <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-white bg-white/10 px-2 py-1 rounded">Open Planner &rarr;</div>
+        </div>
+
+        {/* Calendar Widget - Medium */}
+        <div className="md:col-span-1">
+             <GoogleCalendarSync />
+        </div>
+      </div>
+
+      <div className="space-y-6">
+         <div className="flex items-center justify-between">
+             <h2 className="text-2xl font-bold text-white">Active Projects</h2>
+             <div className="relative">
+                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"/>
+                 <input 
+                    type="text" 
+                    placeholder="Search..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 pl-10 pr-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                />
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    className="bg-gray-800/50 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all w-48 focus:w-64"
+                 />
+             </div>
+         </div>
+         
+         {processedProjects.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {processedProjects.map(p => (
+                    <ProjectCard key={p.id} project={p} onSelect={onSelectProject} onDelete={handleDeleteProject} progress={p.progress} />
+                ))}
             </div>
-            <div className="flex items-center gap-2">
-                <label htmlFor="sort-select" className="text-gray-300">Sort by:</label>
-                <select
-                    id="sort-select"
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value as SortOption)}
-                    className="bg-gray-800 border border-gray-700 rounded-lg py-2 px-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                >
-                    <option value="date_desc">Date (Newest)</option>
-                    <option value="date_asc">Date (Oldest)</option>
-                    <option value="progress_desc">Progress (High-Low)</option>
-                    <option value="progress_asc">Progress (Low-High)</option>
-                </select>
+         ) : (
+            <div className="text-center py-24 border-2 border-dashed border-white/5 rounded-3xl bg-white/5">
+                <p className="text-gray-400 mb-4">No projects found.</p>
+                <button onClick={onCreateNew} className="text-indigo-400 hover:text-indigo-300 font-semibold">Create your first project</button>
             </div>
-        </div>
-
-        {processedProjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {processedProjects.map(project => (
-              <ProjectCard 
-                key={project.id} 
-                project={project}
-                onSelect={onSelectProject}
-                onDelete={handleDeleteProject}
-                progress={project.progress}
-                completedSubtasks={project.completedSubtasks}
-                totalSubtasks={project.totalSubtasks}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-gray-800/30 rounded-lg border-2 border-dashed border-gray-700">
-            <h2 className="text-2xl font-semibold text-white">{searchTerm ? 'No Matching Projects' : 'No Projects Yet!'}</h2>
-            <p className="text-gray-400 mt-2 mb-6">{searchTerm ? 'Try a different search term.' : 'Click "Create New Plan" to forge your first masterpiece.'}</p>
-            {!searchTerm && (
-                <button
-                    onClick={onCreateNew}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg text-md shadow-lg transform hover:scale-105 transition-all duration-300 cta-glow"
-                >
-                    Get Started
-                </button>
-            )}
-          </div>
-        )}
+         )}
       </div>
     </div>
   );
