@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Project } from '../types';
+import { Project, Plan } from '../types';
 import * as storage from '../services/storageService';
 import * as gemini from '../services/geminiService';
 import { decode, decodeAudioData } from '../utils/audioUtils';
-import { TrashIcon, LoaderIcon, TtsIcon, StopIcon, SearchIcon, CogIcon } from './icons';
+import { TrashIcon, LoaderIcon, TtsIcon, StopIcon, SearchIcon, CogIcon, ClipboardCheckIcon } from './icons';
 import GoogleCalendarSync from './GoogleCalendarSync';
 
 interface ProjectCardProps {
@@ -58,12 +57,14 @@ interface DashboardProps {
   onSelectProject: (id: string) => void;
   onCreateNew: () => void;
   onShowSettings: () => void;
+  onShowDailyPlanner: () => void;
 }
 
 type SortOption = 'date_desc' | 'date_asc' | 'progress_desc' | 'progress_asc';
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onShowSettings }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onShowSettings, onShowDailyPlanner }) => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [dailyPlan, setDailyPlan] = useState<Plan>([]);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryText, setSummaryText] = useState('');
   const [isSummaryPlaying, setIsSummaryPlaying] = useState(false);
@@ -74,6 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
 
   useEffect(() => {
     setProjects(storage.getProjects());
+    setDailyPlan(storage.getDailyPlan(new Date()));
     if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     }
@@ -173,8 +175,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
           </button>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-5 shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            <div className="md:col-span-2 bg-gray-800/50 border border-gray-700 rounded-lg p-5 shadow-lg">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <h2 className="text-xl font-bold text-white">Weekly AI Briefing</h2>
                     <button
@@ -195,10 +197,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
                     )}
                 </div>
             </div>
-            <GoogleCalendarSync />
+             <div onClick={onShowDailyPlanner} className="bg-gray-800/50 border border-gray-700 rounded-lg p-5 shadow-lg flex flex-col justify-center items-center text-center hover:border-indigo-500 hover:shadow-indigo-500/20 transition-all duration-300 cursor-pointer">
+                <ClipboardCheckIcon className="w-8 h-8 text-indigo-400 mb-2"/>
+                <h2 className="text-xl font-bold text-white">Daily Planner</h2>
+                <p className="text-sm text-gray-400 mt-1">
+                    {dailyPlan.length > 0 ? `${dailyPlan.length} tasks for today` : "Plan your day"}
+                </p>
+            </div>
         </div>
+        
+        <GoogleCalendarSync />
 
-        <div className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="my-8 flex flex-col md:flex-row gap-4 justify-between items-center">
             <div className="relative w-full md:max-w-md">
                 <input
                     type="text"

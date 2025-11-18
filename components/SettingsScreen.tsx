@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, FormEvent } from 'react';
 import { SettingsContext } from '../contexts/SettingsContext';
 import { Settings, AIProvider } from '../types';
 import { ChevronLeftIcon, CopyIcon } from './icons';
+import { DEFAULT_SETTINGS } from '../services/settingsService';
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -62,9 +63,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   };
 
   const providerDetails: Record<AIProvider, { name: string; hasModel: boolean }> = {
-    gemini: { name: 'Google Gemini', hasModel: false },
-    openai: { name: 'OpenAI', hasModel: false },
-    anthropic: { name: 'Anthropic', hasModel: false },
+    gemini: { name: 'Google Gemini', hasModel: true },
+    openai: { name: 'OpenAI', hasModel: true },
+    anthropic: { name: 'Anthropic', hasModel: true },
     openrouter: { name: 'OpenRouter', hasModel: true },
     groq: { name: 'Groq', hasModel: true },
   };
@@ -173,7 +174,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
                                             id={`${p}-model`}
                                             value={settings.providers[p].model}
                                             onChange={(e) => handleProviderChange(p, 'model', e.target.value)}
-                                            placeholder="e.g., llama3-8b-8192"
+                                            placeholder={DEFAULT_SETTINGS.providers[p].model || 'e.g., gemini-2.5-pro'}
                                             className={inputStyles}
                                         />
                                     </div>
@@ -184,7 +185,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
                 })}
             </div>
              <div className="mt-4 text-sm text-yellow-400 bg-yellow-900/50 p-3 rounded-lg">
-                <strong>Note:</strong> While you can store keys for multiple providers, the application's current logic is integrated with the Gemini API. Selecting other providers is for future compatibility.
+                <strong>Note:</strong> Ensure the model name you enter (e.g., 'gpt-4o', 'llama3-8b-8192') is compatible with the selected provider and your API key.
             </div>
           </div>
           

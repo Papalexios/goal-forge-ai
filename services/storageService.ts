@@ -1,6 +1,13 @@
 import { Project, Plan } from '../types';
 
 const PROJECTS_KEY = 'goalforge_projects';
+const DAILY_PLAN_PREFIX = 'goalforge_daily_plan_';
+
+// Helper to get the storage key for a specific date
+const getDailyPlanKey = (date: Date): string => {
+    const isoDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    return `${DAILY_PLAN_PREFIX}${isoDate}`;
+};
 
 export const getProjects = (): Project[] => {
   try {
@@ -39,5 +46,26 @@ export const updatePlanInProject = (projectId: string, updatedPlan: Plan): void 
     if (project) {
         project.plan = updatedPlan;
         saveProject(project);
+    }
+};
+
+// New functions for Daily Planner
+export const getDailyPlan = (date: Date): Plan => {
+    const key = getDailyPlanKey(date);
+    try {
+        const planJson = localStorage.getItem(key);
+        return planJson ? JSON.parse(planJson) : [];
+    } catch (error) {
+        console.error(`Failed to parse daily plan for ${key}`, error);
+        return [];
+    }
+};
+
+export const saveDailyPlan = (date: Date, plan: Plan): void => {
+    const key = getDailyPlanKey(date);
+    try {
+        localStorage.setItem(key, JSON.stringify(plan));
+    } catch (error) {
+        console.error(`Failed to save daily plan for ${key}`, error);
     }
 };

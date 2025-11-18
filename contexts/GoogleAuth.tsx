@@ -1,10 +1,5 @@
-import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
-import { SettingsContext } from './SettingsContext';
-
-// The scopes required for the application to access Google Calendar events.
-export const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
-
 // Add type definitions for Google Identity Services and GAPI
+// These must be at the top of the file, before any imports.
 declare namespace google {
   namespace accounts {
     namespace oauth2 {
@@ -26,6 +21,12 @@ declare global {
     google: any;
   }
 }
+
+import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
+import { SettingsContext } from './SettingsContext';
+
+// The scopes required for the application to access Google Calendar events.
+export const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
 interface AuthContextType {
   gapi: any | null;

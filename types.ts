@@ -56,3 +56,15 @@ export interface Settings {
   };
   googleClientId: string;
 }
+
+// New Daily Planner Types
+export interface ScheduleBlock {
+  time: string;
+  title: string;
+  taskIds: string[];
+}
+
+export interface OptimizedSchedule {
+  summary: string;
+  schedule: ScheduleBlock[];
+}

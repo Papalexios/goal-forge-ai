@@ -1,4 +1,15 @@
+// Fix: Augment the global Window interface to include SpeechRecognition APIs for TypeScript.
+// This must be at the top of the file, before any imports.
+declare global {
+  interface Window {
+    // FIX: Correctly typed SpeechRecognition properties as constructors that return an instance of the SpeechRecognition interface.
+    SpeechRecognition?: { new (): SpeechRecognition };
+    webkitSpeechRecognition?: { new (): SpeechRecognition };
+  }
+}
+
 // Fix: Added type definitions for the Web Speech API as they are not included in TypeScript's standard DOM library.
+// Moved to top of file to ensure all declarations are parsed before module code.
 interface SpeechRecognitionErrorEvent extends Event {
   readonly error: string;
   readonly message: string;
@@ -37,18 +48,6 @@ interface SpeechRecognition extends EventTarget {
   onend: () => void;
   onerror: (event: SpeechRecognitionErrorEvent) => void;
 }
-
-
-// Fix: Augment the global Window interface to include SpeechRecognition APIs for TypeScript.
-// This is necessary because this file is a module and we need to modify the global scope.
-declare global {
-  interface Window {
-    // FIX: Correctly typed SpeechRecognition properties as constructors that return an instance of the SpeechRecognition interface.
-    SpeechRecognition?: { new (): SpeechRecognition };
-    webkitSpeechRecognition?: { new (): SpeechRecognition };
-  }
-}
-
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 

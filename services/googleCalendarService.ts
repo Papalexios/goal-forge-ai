@@ -1,6 +1,5 @@
-import { Task } from '../types';
-
-// Fix: Add type definition for Google's OAuth2 TokenResponse
+// Fix: Add type definition for Google's OAuth2 TokenResponse.
+// This must be at the top of the file, before any imports.
 declare namespace google {
   namespace accounts {
     namespace oauth2 {
@@ -14,6 +13,8 @@ declare namespace google {
     }
   }
 }
+
+import { Task } from '../types';
 
 /**
  * Parses a time estimate string (e.g., "90 min", "2 hours") into minutes.

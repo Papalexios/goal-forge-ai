@@ -3,10 +3,11 @@ import HeroScreen from './components/HeroScreen';
 import AIAssistant from './components/AIAssistant';
 import Dashboard from './components/Dashboard';
 import SettingsScreen from './components/SettingsScreen';
+import DailyPlannerScreen from './components/DailyPlannerScreen';
 import { GoogleAuthProvider } from './contexts/GoogleAuth';
 import { SettingsProvider } from './contexts/SettingsContext';
 
-type Screen = 'hero' | 'dashboard' | 'assistant' | 'settings';
+type Screen = 'hero' | 'dashboard' | 'assistant' | 'settings' | 'daily_planner';
 type View = {
   screen: Screen;
   projectId?: string | null;
@@ -27,16 +28,23 @@ const App: React.FC = () => {
     setView({ screen: 'settings' });
   }, []);
 
+  const showDailyPlanner = useCallback(() => {
+    setView({ screen: 'daily_planner' });
+  }, []);
+
+
   const renderScreen = () => {
     switch (view.screen) {
       case 'hero':
         return <HeroScreen onGetStarted={showDashboard} />;
       case 'dashboard':
-        return <Dashboard onSelectProject={showAssistant} onCreateNew={() => showAssistant()} onShowSettings={showSettings} />;
+        return <Dashboard onSelectProject={showAssistant} onCreateNew={() => showAssistant()} onShowSettings={showSettings} onShowDailyPlanner={showDailyPlanner} />;
       case 'assistant':
         return <AIAssistant projectId={view.projectId} onBack={showDashboard} />;
       case 'settings':
         return <SettingsScreen onBack={showDashboard} />;
+      case 'daily_planner':
+        return <DailyPlannerScreen onBack={showDashboard} />;
       default:
         return <HeroScreen onGetStarted={showDashboard} />;
     }
