@@ -1,8 +1,10 @@
+
 import React, { useState, useContext } from 'react';
 import { Task, Subtask, Priority, Status } from '../types';
-import { CalendarIcon, EditIcon, SparklesIcon, PlusIcon, LoaderIcon } from './icons';
+import { CalendarIcon, EditIcon, SparklesIcon, PlusIcon, LoaderIcon, RepeatIcon, ClockIcon } from './icons';
 import AIAssistModal from './AIAssistModal';
 import * as gemini from '../services/geminiService';
+import * as storage from '../services/storageService';
 import { GoogleAuthContext } from '../contexts/GoogleAuth';
 import * as calendarService from '../services/googleCalendarService';
 
@@ -132,6 +134,17 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
   };
 
   const handleSave = () => {
+    // Handle Recurrence Logic
+    if (editedTask.recurrence !== task.recurrence) {
+        if (editedTask.recurrence) {
+            // Save as a recurring template
+            storage.saveRecurringTask(editedTask);
+        } else {
+            // Remove if set to null (Note: This removes the template, stopping FUTURE recurrence)
+            storage.removeRecurringTask(task.id);
+        }
+    }
+
     onUpdate(editedTask);
     setIsEditing(false);
   };
@@ -154,7 +167,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
 
   if (isEditing) {
     return (
-        <div className="bg-gray-800/80 p-4 rounded-lg border border-indigo-500 shadow-lg space-y-3">
+        <div className="bg-gray-800/80 p-4 rounded-lg border border-indigo-500 shadow-lg space-y-3 animate-slide-in-up">
             <div>
                 <label className="text-sm font-semibold text-gray-300 mb-1 block">Title</label>
                 <input type="text" name="title" value={editedTask.title} onChange={handleInputChange} className={inputStyles} />
@@ -163,9 +176,21 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
                 <label className="text-sm font-semibold text-gray-300 mb-1 block">Description</label>
                 <textarea name="description" value={editedTask.description} onChange={handleInputChange} className={inputStyles} rows={3}></textarea>
             </div>
-            <div>
-                <label className="text-sm font-semibold text-gray-300 mb-1 block">Start Date & Time</label>
-                <input type="datetime-local" name="startDate" value={editedTask.startDate || ''} onChange={handleInputChange} className={inputStyles} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className="text-sm font-semibold text-gray-300 mb-1 flex items-center gap-2"><ClockIcon className="w-4 h-4"/> Start Date & Time</label>
+                    <input type="datetime-local" name="startDate" value={editedTask.startDate || ''} onChange={handleInputChange} className={inputStyles} />
+                </div>
+                <div>
+                    <label className="text-sm font-semibold text-gray-300 mb-1 flex items-center gap-2"><RepeatIcon className="w-4 h-4"/> Repeats</label>
+                    <select name="recurrence" value={editedTask.recurrence || ''} onChange={handleInputChange} className={inputStyles}>
+                        <option value="">Never</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="flex-1">
@@ -224,7 +249,14 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
                 )}
             </button>
             <div>
-                <h3 className={`text-lg font-bold transition-colors ${task.status === Status.Done ? 'text-gray-500 line-through decoration-2' : 'text-white'}`}>{task.title}</h3>
+                <div className="flex items-center gap-2">
+                    <h3 className={`text-lg font-bold transition-colors ${task.status === Status.Done ? 'text-gray-500 line-through decoration-2' : 'text-white'}`}>{task.title}</h3>
+                    {task.recurrence && (
+                        <span title={`Repeats ${task.recurrence}`} className="text-indigo-400">
+                            <RepeatIcon className="w-4 h-4" />
+                        </span>
+                    )}
+                </div>
                 <p className={`text-sm mt-1 transition-colors ${task.status === Status.Done ? 'text-gray-600' : 'text-gray-400'}`}>{task.description}</p>
             </div>
           </div>

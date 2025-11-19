@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext } from 'react';
 import { Plan, Task, Status, Priority, OptimizedSchedule } from '../types';
 import * as storage from '../services/storageService';
@@ -7,7 +8,8 @@ import { GoogleAuthContext } from '../contexts/GoogleAuth';
 import TaskBoard from './TaskBoard'; // Reusing the board but passing just the daily plan
 import ImportTasksModal from './ImportTasksModal';
 import OptimizedScheduleModal from './OptimizedScheduleModal';
-import { SparklesIcon, FileTextIcon, PlusIcon, LoaderIcon, CalendarIcon } from './icons';
+import { SparklesIcon, FileTextIcon, PlusIcon, LoaderIcon, CalendarIcon, MicrophoneIcon, StopIcon } from './icons';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface DailyPlannerScreenProps {
   onBack: () => void;
@@ -24,9 +26,23 @@ const DailyPlannerScreen: React.FC<DailyPlannerScreenProps> = ({ onBack }) => {
   const { gapi, token, isSignedIn, signIn } = useContext(GoogleAuthContext);
   const today = new Date();
 
+  const {
+    isListening,
+    transcript,
+    start: startListening,
+    stop: stopListening,
+    hasSupport
+  } = useSpeechRecognition();
+
   useEffect(() => {
     setDailyPlan(storage.getDailyPlan(today));
   }, []);
+
+  useEffect(() => {
+    if (isListening) {
+        setNewTaskTitle(transcript);
+    }
+  }, [transcript, isListening]);
 
   const handlePlanUpdate = (updatedPlan: Plan) => {
     setDailyPlan(updatedPlan);
@@ -59,7 +75,9 @@ const DailyPlannerScreen: React.FC<DailyPlannerScreenProps> = ({ onBack }) => {
   };
   
   const handleAddTask = () => {
+    if (isListening) stopListening();
     if (!newTaskTitle.trim()) return;
+    
     const newTask: Task = {
         id: `daily_${Date.now()}`,
         title: newTaskTitle.trim(),
@@ -72,6 +90,15 @@ const DailyPlannerScreen: React.FC<DailyPlannerScreenProps> = ({ onBack }) => {
     };
     handlePlanUpdate([...dailyPlan, newTask]);
     setNewTaskTitle('');
+  };
+
+  const toggleListening = () => {
+      if (isListening) {
+          stopListening();
+      } else {
+          setNewTaskTitle('');
+          startListening();
+      }
   };
 
   const handleSyncDayToCalendar = async () => {
@@ -130,10 +157,23 @@ const DailyPlannerScreen: React.FC<DailyPlannerScreenProps> = ({ onBack }) => {
             value={newTaskTitle} 
             onChange={e => setNewTaskTitle(e.target.value)} 
             onKeyDown={e => e.key === 'Enter' && handleAddTask()}
-            placeholder="Add a quick task for today..." 
-            className="bg-transparent flex-grow px-4 py-2 text-white placeholder-gray-500 focus:outline-none"
+            placeholder={isListening ? "Listening..." : "Add a quick task for today..."} 
+            className={`bg-transparent flex-grow px-4 py-2 text-white placeholder-gray-500 focus:outline-none transition-all ${isListening ? 'text-indigo-300 placeholder-indigo-400/50' : ''}`}
           />
-          <button onClick={handleAddTask} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg text-white transition-colors">
+          {hasSupport && (
+            <button 
+                onClick={toggleListening}
+                className={`p-2 rounded-lg transition-all duration-300 flex items-center justify-center ${
+                    isListening 
+                    ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse text-white' 
+                    : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white hover:scale-105'
+                }`}
+                title={isListening ? "Stop Recording" : "Start Voice Input"}
+            >
+                {isListening ? <StopIcon className="w-5 h-5"/> : <MicrophoneIcon className="w-5 h-5"/>}
+            </button>
+          )}
+          <button onClick={handleAddTask} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg text-white transition-colors hover:scale-105">
             <PlusIcon className="w-5 h-5"/>
           </button>
       </div>

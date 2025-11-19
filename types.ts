@@ -1,3 +1,4 @@
+
 export enum Priority {
   High = 'High',
   Medium = 'Medium',
@@ -26,6 +27,7 @@ export interface Task {
   status: Status;
   startDate?: string | null;
   googleCalendarEventId?: string | null;
+  recurrence?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
 }
 
 export type Plan = Task[];

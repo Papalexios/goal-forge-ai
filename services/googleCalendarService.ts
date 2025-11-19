@@ -1,3 +1,4 @@
+
 // Fix: Add type definition for Google's OAuth2 TokenResponse.
 declare namespace google {
   namespace accounts {
@@ -28,7 +29,13 @@ const parseTimeEstimateToMinutes = (timeEstimate: string): number => {
 };
 
 export const listTodaysEvents = async (gapi: any, token: google.accounts.oauth2.TokenResponse) => {
-    if (!gapi.client?.calendar) throw new Error("GAPI calendar client not initialized.");
+    if (!gapi.client) throw new Error("GAPI client not initialized.");
+    
+    // Ensure calendar client is loaded
+    if (!gapi.client.calendar) {
+        await gapi.client.load('calendar', 'v3');
+    }
+
     gapi.client.setToken(token);
 
     const today = new Date();
@@ -49,12 +56,18 @@ export const listTodaysEvents = async (gapi: any, token: google.accounts.oauth2.
 };
 
 export const createEvent = async (gapi: any, token: google.accounts.oauth2.TokenResponse, task: Task) => {
-    if (!gapi.client?.calendar) throw new Error("GAPI calendar client not initialized.");
+    if (!gapi.client) throw new Error("GAPI client not initialized.");
+
+    // Ensure calendar client is loaded
+    if (!gapi.client.calendar) {
+        await gapi.client.load('calendar', 'v3');
+    }
     
     // Default to now if no start date, or use provided date
     let startDate = task.startDate ? new Date(task.startDate) : new Date();
-    // If the date is in the past (or invalid), bump it to next hour
-    if (isNaN(startDate.getTime()) || startDate < new Date()) {
+    // If the date is in the past (or invalid) and no start date was explicitly set on the task, bump it to next hour.
+    // If task.startDate IS set, we respect it even if it's in the past (user might be back-logging).
+    if ((!task.startDate && isNaN(startDate.getTime())) || (!task.startDate && startDate < new Date())) {
         startDate = new Date();
         startDate.setMinutes(0, 0, 0);
         startDate.setHours(startDate.getHours() + 1);
@@ -86,31 +99,84 @@ export const createEvent = async (gapi: any, token: google.accounts.oauth2.Token
     return response.result;
 };
 
-// New Batch Functionality
-export const createBatchEvents = async (gapi: any, token: google.accounts.oauth2.TokenResponse, tasks: Task[]) => {
-    if (!gapi.client?.calendar) throw new Error("GAPI client not ready.");
+// New Batch Functionality with Smart Scheduling
+export const createBatchEvents = async (
+    gapi: any, 
+    token: google.accounts.oauth2.TokenResponse, 
+    tasks: Task[], 
+    onProgress?: (current: number, total: number) => void,
+    startCursorDate?: Date // NEW PARAMETER
+) => {
+    if (!gapi.client) throw new Error("GAPI client not ready.");
+
+    // Ensure calendar client is loaded (failsafe)
+    if (!gapi.client.calendar) {
+        console.log("Loading GAPI Calendar v3...");
+        await gapi.client.load('calendar', 'v3');
+    }
     
-    // Filter out tasks already synced or without valid data, but be flexible with dates (defaulting to now if needed)
     const tasksToSync = tasks.filter(t => !t.googleCalendarEventId);
     
     if (tasksToSync.length === 0) return [];
 
-    // Execute in parallel
-    const promises = tasksToSync.map(async (task, index) => {
-        // Stagger start times by 1 hour if no date provided, just for visualization in calendar
-        if (!task.startDate) {
-             const d = new Date();
-             d.setHours(9 + index, 0, 0, 0); // Start at 9am and stack
-             task.startDate = d.toISOString();
+    // Smart Scheduling Cursor
+    let scheduleCursor: Date;
+    
+    if (startCursorDate) {
+        scheduleCursor = new Date(startCursorDate);
+    } else {
+        // Default: Start tomorrow at 9:00 AM if no cursor provided
+        scheduleCursor = new Date();
+        scheduleCursor.setDate(scheduleCursor.getDate() + 1);
+        scheduleCursor.setHours(9, 0, 0, 0);
+    }
+
+    const WORK_DAY_START = 9;
+    const WORK_DAY_END = 17; // 5 PM
+
+    const tasksWithDates = tasksToSync.map(task => {
+        // If task already has a valid start date, use it.
+        if (task.startDate) return task;
+
+        // Otherwise, assign a smart date
+        const assignedDate = new Date(scheduleCursor);
+        
+        // Move cursor forward 1 hour for the next task
+        scheduleCursor.setHours(scheduleCursor.getHours() + 1);
+
+        // If we passed the work day end, move to next day 9 AM
+        if (scheduleCursor.getHours() >= WORK_DAY_END) {
+            scheduleCursor.setDate(scheduleCursor.getDate() + 1);
+            scheduleCursor.setHours(WORK_DAY_START, 0, 0, 0);
         }
-        try {
-            const result = await createEvent(gapi, token, task);
-            return { taskId: task.id, eventId: result.id, status: 'success' };
-        } catch (e) {
-            console.error(`Failed to sync task ${task.title}`, e);
-            return { taskId: task.id, error: e, status: 'error' };
-        }
+
+        return {
+            ...task,
+            startDate: assignedDate.toISOString()
+        };
     });
 
-    return Promise.all(promises);
+    const results = [];
+    let processedCount = 0;
+
+    // SEQUENTIAL EXECUTION to avoid Google API Rate Limits (403)
+    for (const task of tasksWithDates) {
+        try {
+            const result = await createEvent(gapi, token, task);
+            results.push({ taskId: task.id, eventId: result.id, status: 'success' });
+        } catch (e) {
+            console.error(`Failed to sync task ${task.title}`, e);
+            results.push({ taskId: task.id, error: e, status: 'error' });
+        }
+        
+        processedCount++;
+        if (onProgress) {
+            onProgress(processedCount, tasksWithDates.length);
+        }
+
+        // Tiny delay to be polite to the API
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    return results;
 };

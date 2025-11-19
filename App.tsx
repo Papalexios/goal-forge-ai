@@ -16,7 +16,7 @@ const App: React.FC = () => {
 
   const nav = (screen: Screen, projectId: string | null = null) => setView({ screen, projectId });
 
-  // Persistent Sidebar Component
+  // Persistent Sidebar Component (Desktop)
   const Sidebar = () => (
     <div className="hidden lg:flex flex-col w-20 hover:w-64 transition-all duration-300 bg-gray-900 border-r border-white/5 h-screen fixed left-0 top-0 z-50 group overflow-hidden">
         <div className="p-6 flex items-center gap-4 mb-8">
@@ -48,6 +48,31 @@ const App: React.FC = () => {
     </div>
   );
 
+  // Bottom Navigation Component (Mobile)
+  const MobileNav = () => (
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-lg border-t border-white/10 z-50 pb-safe">
+        <div className="flex justify-around items-center p-2">
+            {[
+                { id: 'dashboard', icon: KanbanIcon, label: 'Home' },
+                { id: 'daily_planner', icon: ClipboardCheckIcon, label: 'Planner' },
+                { id: 'assistant', icon: BrainCircuitIcon, label: 'AI' },
+                { id: 'settings', icon: CogIcon, label: 'Config' },
+            ].map((item) => (
+                <button
+                    key={item.id}
+                    onClick={() => nav(item.id as Screen)}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-300 ${view.screen === item.id ? 'text-indigo-400' : 'text-gray-500'}`}
+                >
+                    <div className={`p-1 rounded-full ${view.screen === item.id ? 'bg-indigo-500/20' : 'bg-transparent'}`}>
+                        <item.icon className="w-6 h-6"/>
+                    </div>
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                </button>
+            ))}
+        </div>
+    </div>
+  );
+
   const renderScreen = () => {
     switch (view.screen) {
       case 'hero': return <HeroScreen onGetStarted={() => nav('dashboard')} />;
@@ -64,9 +89,10 @@ const App: React.FC = () => {
       <GoogleAuthProvider>
           <div className="bg-[#0a0a0a] text-white min-h-screen font-sans selection:bg-indigo-500/30">
              {view.screen !== 'hero' && <Sidebar />}
-             <div className={`min-h-screen transition-all duration-300 ${view.screen !== 'hero' ? 'lg:ml-20' : ''}`}>
+             <div className={`min-h-screen transition-all duration-300 ${view.screen !== 'hero' ? 'lg:ml-20 pb-24 lg:pb-0' : ''}`}>
                  {renderScreen()}
              </div>
+             {view.screen !== 'hero' && <MobileNav />}
           </div>
       </GoogleAuthProvider>
     </SettingsProvider>
