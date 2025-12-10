@@ -28,6 +28,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
   const [newSubtaskText, setNewSubtaskText] = useState('');
   const [isGeneratingSubtasks, setIsGeneratingSubtasks] = useState(false);
   const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
+  const [showXPPopup, setShowXPPopup] = useState(false);
 
   const { gapi, token, isSignedIn, signIn } = useContext(GoogleAuthContext);
 
@@ -41,6 +42,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
 
     if (allCompleted && task.status !== Status.Done) {
       newStatus = Status.Done;
+      triggerXP(15); // Bonus for all subtasks
     } else if (!allCompleted && task.status === Status.Done) {
       newStatus = Status.InProgress;
     }
@@ -48,8 +50,17 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
     onUpdate({ ...task, subtasks: updatedSubtasks, status: newStatus });
   };
 
+  const triggerXP = (amount: number) => {
+      storage.addXP(amount);
+      setShowXPPopup(true);
+      setTimeout(() => setShowXPPopup(false), 2000);
+  };
+
   const handleStatusToggle = () => {
     const newStatus = task.status === Status.Done ? Status.ToDo : Status.Done;
+    if (newStatus === Status.Done) {
+        triggerXP(25); // Main Task XP
+    }
     onUpdate({ ...task, status: newStatus });
   };
   
@@ -105,6 +116,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
         const event = await calendarService.createEvent(gapi, token, task);
         if (event && event.id) {
             onUpdate({ ...task, googleCalendarEventId: event.id });
+            triggerXP(10); // Reward for organizing
             alert('Task successfully added to your Google Calendar!');
         } else {
              throw new Error("Failed to get event ID from Google Calendar response.");
@@ -230,7 +242,12 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
         taskTitle={task.title}
         subtaskText={assistingSubtask?.text || ''}
       />
-      <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:border-indigo-500 transition-all duration-200 shadow-md">
+      <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:border-indigo-500 transition-all duration-200 shadow-md relative overflow-hidden">
+        {showXPPopup && (
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none animate-bounce">
+                <span className="text-yellow-400 font-bold text-2xl drop-shadow-lg shadow-black">+XP</span>
+            </div>
+        )}
         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
           <div className="flex items-start gap-3 flex-grow">
             <button

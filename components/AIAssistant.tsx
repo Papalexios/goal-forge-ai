@@ -87,7 +87,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ projectId, onBack }) => {
     setProject(newProject);
     setGoal(newGoal);
     setIsPlanGenerating(false);
-    setMessages(prev => [...prev, { sender: 'ai', text: `Excellent! I've drafted a complete project plan for "${newGoal}". You can see it on the right. How can I help you refine it?`, isFinal: true }]);
+    setMessages(prev => [...prev, { sender: 'ai', text: `I've crafted a high-quality strategic plan for "${newGoal}" with specific timelines and productivity-optimized schedules. You can now seamlessly sync this entire roadmap to your Google Calendar using the 'Add Board to Calendar' button above the board.`, isFinal: true }]);
   }, []);
 
   const handleTaskAdded = useCallback((task: Task) => {

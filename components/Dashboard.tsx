@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Project, Plan } from '../types';
 import * as storage from '../services/storageService';
@@ -5,6 +6,7 @@ import * as gemini from '../services/geminiService';
 import { decode, decodeAudioData } from '../utils/audioUtils';
 import { TrashIcon, LoaderIcon, TtsIcon, StopIcon, SearchIcon, PlusIcon, ClipboardCheckIcon, SparklesIcon } from './icons';
 import GoogleCalendarSync from './GoogleCalendarSync';
+import GamificationWidget from './GamificationWidget';
 
 interface ProjectCardProps {
     project: Project;
@@ -61,6 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
   const [summaryText, setSummaryText] = useState('');
   const [isSummaryPlaying, setIsSummaryPlaying] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [userStats, setUserStats] = useState(storage.getUserStats());
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -68,9 +71,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
   useEffect(() => {
     setProjects(storage.getProjects());
     setDailyPlan(storage.getDailyPlan(new Date()));
+    
+    const interval = setInterval(() => {
+        setUserStats(storage.getUserStats());
+    }, 2000); // Polling for stat updates
+
     if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     }
+
+    return () => clearInterval(interval);
   }, []);
   
   const handleDeleteProject = (id: string) => {
@@ -139,6 +149,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
         </div>
       </header>
 
+      {/* Gamification Bar */}
+      <div className="w-full">
+         <GamificationWidget stats={userStats} />
+      </div>
+
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* AI Summary Widget - Large */}
@@ -198,7 +213,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectProject, onCreateNew, onS
                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"/>
                  <input 
                     type="text" 
-                    placeholder="Search..." 
+                    placeholder="Search (Cmd+K)" 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-gray-800/50 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all w-48 focus:w-64"

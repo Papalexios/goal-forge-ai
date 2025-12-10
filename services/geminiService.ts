@@ -12,6 +12,7 @@ const planGenerationSchema = {
         description: { type: Type.STRING, description: 'A detailed description of what the task involves. For simple to-do items, this can be brief.' },
         priority: { type: Type.STRING, enum: ['High', 'Medium', 'Low'], description: 'The priority level of the task.' },
         timeEstimate: { type: Type.STRING, description: 'An estimated time to complete the task, e.g., "90 min", "4 hours". For small to-do items, can be "5 min".' },
+        startDate: { type: Type.STRING, description: 'ISO 8601 date string (YYYY-MM-DDTHH:mm:ss) indicating when this task should start. You MUST schedule these tasks realistically starting from the Current Date, spreading them out over days or weeks as appropriate for the project scope. Do not schedule everything on the first day.' },
         status: { type: Type.STRING, enum: ['To Do', 'In Progress', 'Done'], description: 'The current status of the task. Should default to "To Do" for all new tasks.' },
         subtasks: {
           type: Type.ARRAY,
@@ -26,7 +27,7 @@ const planGenerationSchema = {
           },
         },
       },
-      required: ['id', 'title', 'description', 'priority', 'timeEstimate', 'status', 'subtasks'],
+      required: ['id', 'title', 'description', 'priority', 'timeEstimate', 'status', 'subtasks', 'startDate'],
     },
 };
 
@@ -105,14 +106,21 @@ export const generatePlan = async (goal: string): Promise<Plan> => {
             }
             
             const ai = new GoogleGenAI({ apiKey: apiKey });
+            const now = new Date().toISOString();
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-pro', // Use a robust model for planning
-                contents: `My goal is: "${goal}".`,
+                contents: `Current Date/Time: ${now}. My goal is: "${goal}".`,
                 config: {
-                    systemInstruction: `You are an expert project manager. Break down the goal into a detailed, actionable plan. Group tasks logically. Ensure output is valid JSON matching the schema.`,
+                    systemInstruction: `You are an elite Project Manager and Productivity Expert. 
+                    1. Break down the goal into a comprehensive, long-term project plan consisting of detailed tasks.
+                    2. Use productivity principles like "Deep Work" and "Logical Sequencing".
+                    3. CRITICAL: Assign a specific, realistic ISO 8601 "startDate" to EACH task. Start from the Current Date provided. Spread tasks out over days or weeks depending on the scope (don't pile everything on day 1). 
+                    4. Ensure "timeEstimate" is specific (e.g. "2 hours", "45 min").
+                    5. Group tasks logically.
+                    6. Ensure output is valid JSON matching the schema.`,
                     responseMimeType: "application/json",
                     responseSchema: planGenerationSchema,
-                    thinkingConfig: { thinkingBudget: 1024 }, // Reduced budget for faster response, but still smart
+                    thinkingConfig: { thinkingBudget: 2048 }, // Increased budget for better scheduling logic
                 },
             });
 

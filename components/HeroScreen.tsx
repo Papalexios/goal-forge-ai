@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import ParticleBackground from './ParticleBackground';
 import { useTypewriter } from '../hooks/useTypewriter';
-import { GoalForgeAILogo, LoaderIcon, BrainCircuitIcon, VoiceRecIcon, KanbanIcon, ExportIcon, AffiliateMarketingLogo } from './icons';
+import { GoalForgeAILogo, LoaderIcon, BrainCircuitIcon, VoiceRecIcon, KanbanIcon, ExportIcon, SparklesIcon } from './icons';
 
 interface HeroScreenProps {
   onGetStarted: () => void;
@@ -38,24 +39,6 @@ const features = [
     },
 ];
 
-const testimonials = [
-    {
-        quote: "GoalForge AI took our chaotic brainstorming session and turned it into a crystal-clear roadmap overnight. The time saved is immeasurable.",
-        name: "Elena Rodriguez",
-        title: "Founder, Innovatech Solutions",
-    },
-    {
-        quote: "As a freelance developer, I juggle multiple projects. This tool is my secret weapon for staying organized and delivering on time, every time.",
-        name: "Ben Carter",
-        title: "Senior Full-Stack Developer",
-    },
-    {
-        quote: "The voice command feature is a game-changer. I can update project statuses while I'm whiteboarding ideas. It keeps me in the flow.",
-        name: "Aisha Khan",
-        title: "Product Manager, Quantum Leap",
-    }
-];
-
 const HeroScreen: React.FC<HeroScreenProps> = ({ onGetStarted }) => {
   const [demoState, setDemoState] = useState<'idle' | 'input' | 'processing' | 'output'>('idle');
 
@@ -85,146 +68,225 @@ const HeroScreen: React.FC<HeroScreenProps> = ({ onGetStarted }) => {
   };
 
   return (
-    <div className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-x-hidden z-0 text-gray-200">
+    <div className="relative w-full min-h-screen flex flex-col items-center overflow-x-hidden z-0 text-gray-200 bg-[#050505]">
       <div className="aurora-background"></div>
       <ParticleBackground />
-      <div className="absolute inset-0 bg-gray-900/50"></div>
       
-      <header className="absolute top-0 left-0 right-0 z-20 animate-slide-in-up stagger-1 opacity-0">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-                <GoalForgeAILogo className="w-10 h-10 text-white" />
+      {/* HEADER */}
+      <header className="absolute top-0 left-0 right-0 z-50 animate-slide-in-up stagger-1 opacity-0">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                    <GoalForgeAILogo className="relative w-12 h-12 text-white" />
+                </div>
                 <div>
-                    <h2 className="font-bold text-xl text-white">GoalForge AI</h2>
-                    <p className="text-xs text-gray-400">An Unfair Advantage by AffiliateMarketingForSuccess.com</p>
+                    <h2 className="font-bold text-2xl text-white tracking-tight">GoalForge AI</h2>
+                    <a 
+                        href="https://affiliatemarketingforsuccess.com" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs font-medium text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 hover:text-indigo-300 transition-all flex items-center gap-1"
+                    >
+                        From the creators of AffiliateMarketingForSuccess.com &rarr;
+                    </a>
                 </div>
             </div>
+            
+            <a 
+                href="https://seo-hub.affiliatemarketingforsuccess.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 transition-all hover:scale-105"
+            >
+                <SparklesIcon className="w-4 h-4 text-yellow-400" />
+                <span>Visit SEO Hub</span>
+            </a>
         </div>
       </header>
       
-      <main className="z-10 container mx-auto px-6 w-full flex flex-col items-center text-center mt-32 sm:mt-40">
-        <div className="max-w-4xl">
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-400 mb-6 animate-slide-in-up stagger-2 opacity-0">
-              Your Vision, Architected by AI.
+      {/* MAIN HERO CONTENT */}
+      <main className="z-10 container mx-auto px-6 w-full flex flex-col items-center text-center mt-32 md:mt-48 mb-20">
+        <div className="max-w-5xl relative">
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] -z-10"></div>
+            
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white mb-8 animate-slide-in-up stagger-2 opacity-0 leading-tight">
+              Forging Vision into <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">Reality.</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8 animate-slide-in-up stagger-3 opacity-0">
-              Instantly transform abstract ideas into detailed, actionable project plans with the power of Gemini 2.5 Pro. Stop planning, start building.
+            
+            <p className="text-lg md:text-2xl text-gray-400 max-w-3xl mx-auto mb-12 animate-slide-in-up stagger-3 opacity-0 font-light leading-relaxed">
+              Instantly transform abstract ideas into detailed, actionable project plans with the power of <strong>Gemini 2.5 Pro</strong>. Stop planning, start building.
             </p>
-            <button 
-              onClick={onGetStarted}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-10 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-all duration-300 cta-glow animate-slide-in-up stagger-4 opacity-0"
-            >
-              Forge Your First Plan
-            </button>
-        </div>
+            
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6 animate-slide-in-up stagger-4 opacity-0">
+                <button 
+                  onClick={onGetStarted}
+                  className="group relative w-full md:w-auto bg-white text-black font-bold py-4 px-10 rounded-xl text-lg shadow-[0_0_40px_-10px_rgba(255,255,255,0.5)] hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.7)] transform hover:scale-105 transition-all duration-300 overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    Forge Your First Plan
+                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  </span>
+                </button>
 
-        <div className="w-full max-w-2xl mt-16 animate-slide-in-up stagger-5 opacity-0">
-            <div className="relative h-[26rem] glass-pane rounded-2xl p-6 flex flex-col justify-center items-center text-center overflow-hidden">
-                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-500 rounded-full blur-3xl transition-opacity duration-1000 ${demoState === 'processing' ? 'opacity-30 animate-pulse' : 'opacity-10'}`}></div>
-                
-                <div className="relative w-full h-full flex flex-col items-center justify-center" aria-live="polite">
-                {demoState === 'idle' && (
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 border-2 border-dashed border-gray-500 rounded-full flex items-center justify-center">
-                        <GoalForgeAILogo className="w-8 h-8"/>
-                    </div>
-                    <h3 className="text-lg font-semibold text-white">AI Forge</h3>
-                    <p className="text-gray-400 text-sm">Click below to see the AI in action.</p>
-                  </div>
-                )}
-                {demoState === 'input' && (
-                  <div className="w-full font-mono text-left">
-                     <p className="text-sm text-green-400 mb-2">&gt; Goal:</p>
-                     <p className="text-lg text-white">{goalText}<span className="w-2.5 h-5 bg-white animate-pulse ml-1 inline-block"></span></p>
-                  </div>
-                )}
-                 {demoState === 'processing' && (
-                  <div className="text-center">
-                    <LoaderIcon className="w-10 h-10 text-white animate-spin mx-auto" />
-                    <p className="mt-4 font-mono text-gray-300 text-sm">Analyzing & Structuring...</p>
-                  </div>
-                )}
-                {demoState === 'output' && (
-                    <div className="w-full text-left">
-                        <p className="font-bold text-white text-lg">{planText}{!planDone && <span className="w-2.5 h-5 bg-white animate-pulse ml-1 inline-block"></span>}</p>
-                        {planDone && (
-                            <ul className="text-sm text-gray-300 list-disc list-inside mt-4 space-y-1">
-                                {SUBTASKS.map((subtask, i) => <li key={i}>{subtask}</li>)}
-                            </ul>
-                        )}
-                    </div>
-                )}
-              </div>
-              <button onClick={runDemo} disabled={demoState === 'input' || demoState === 'processing'} className="w-full absolute bottom-6 left-1/2 -translate-x-1/2 max-w-[calc(100%-3rem)] bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300">
-                {demoState === 'idle' || (demoState === 'output' && planDone) ? 'Run Interactive Demo' : 'Processing...'}
-              </button>
+                <a 
+                  href="https://seo-hub.affiliatemarketingforsuccess.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative w-full md:w-auto overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-[length:200%_auto] p-[1px] shadow-2xl hover:scale-105 transition-all duration-300 animate-[shimmer_3s_linear_infinite]"
+                >
+                   <div className="relative h-full bg-black/80 backdrop-blur-xl rounded-xl px-8 py-4 flex items-center justify-center gap-3 transition-colors group-hover:bg-black/60">
+                        <SparklesIcon className="w-5 h-5 text-yellow-400 animate-pulse" />
+                        <span className="font-bold text-white text-base md:text-lg text-center leading-tight">
+                            Dominate Your Niche <br className="md:hidden"/>
+                            <span className="text-sm font-normal text-indigo-200 block md:inline md:ml-2">Unlock Your AI SEO Arsenal</span>
+                        </span>
+                   </div>
+                </a>
             </div>
         </div>
 
-        {/* Features Section */}
-        <section className="w-full max-w-7xl mx-auto py-24 sm:py-32">
-            <div className="text-center max-w-2xl mx-auto">
-                <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl animate-slide-in-up stagger-1 opacity-0">From Idea to Execution, Instantly</h2>
-                <p className="mt-6 text-lg leading-8 text-gray-300 animate-slide-in-up stagger-2 opacity-0">
-                    GoalForge AI is more than a planner. It's an intelligent partner that structures your ambitions into achievable steps, empowering you to focus on what truly matters: building.
-                </p>
+        {/* DEMO WIDGET */}
+        <div className="w-full max-w-4xl mt-24 animate-slide-in-up stagger-5 opacity-0">
+            <div className="relative h-[28rem] bg-gray-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-1 shadow-2xl overflow-hidden ring-1 ring-white/10">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                <div className="h-full w-full bg-black/40 rounded-[1.4rem] p-8 flex flex-col justify-center items-center text-center relative overflow-hidden">
+                    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600 rounded-full blur-[100px] transition-opacity duration-1000 ${demoState === 'processing' ? 'opacity-40 animate-pulse' : 'opacity-10'}`}></div>
+                    
+                    <div className="relative w-full h-full flex flex-col items-center justify-center z-10">
+                    {demoState === 'idle' && (
+                      <div className="text-center transform transition-all duration-500 hover:scale-105 cursor-pointer" onClick={runDemo}>
+                        <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-gray-800 to-black border border-gray-700 rounded-2xl flex items-center justify-center shadow-lg group">
+                            <GoalForgeAILogo className="w-10 h-10 group-hover:animate-spin-slow transition-all"/>
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-2">Interactive AI Demo</h3>
+                        <p className="text-gray-400">See the engine in action.</p>
+                      </div>
+                    )}
+                    {demoState === 'input' && (
+                      <div className="w-full max-w-lg text-left bg-gray-900/80 p-6 rounded-xl border border-white/5 shadow-2xl">
+                         <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                         </div>
+                         <p className="font-mono text-indigo-400 text-sm mb-2">$ input --goal</p>
+                         <p className="font-mono text-xl text-white">{goalText}<span className="w-2.5 h-5 bg-white animate-pulse ml-1 inline-block"></span></p>
+                      </div>
+                    )}
+                     {demoState === 'processing' && (
+                      <div className="text-center">
+                        <LoaderIcon className="w-16 h-16 text-indigo-400 animate-spin mx-auto mb-6" />
+                        <p className="font-mono text-indigo-200 text-lg">Architecting Solution...</p>
+                      </div>
+                    )}
+                    {demoState === 'output' && (
+                        <div className="w-full max-w-lg text-left bg-gray-900/80 p-6 rounded-xl border border-indigo-500/30 shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                            <p className="font-bold text-white text-xl mb-4">{planText}{!planDone && <span className="w-2.5 h-5 bg-white animate-pulse ml-1 inline-block"></span>}</p>
+                            {planDone && (
+                                <ul className="space-y-3">
+                                    {SUBTASKS.map((subtask, i) => (
+                                        <li key={i} className="flex items-center gap-3 text-gray-300 animate-slide-in-up" style={{ animationDelay: `${i * 100}ms` }}>
+                                            <div className="w-5 h-5 rounded-full border border-indigo-500/50 flex items-center justify-center text-indigo-500 text-xs">✓</div>
+                                            {subtask}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+                  </div>
+                  
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center">
+                      <button 
+                        onClick={runDemo} 
+                        disabled={demoState === 'input' || demoState === 'processing'} 
+                        className="text-sm text-gray-500 hover:text-white transition-colors disabled:opacity-0"
+                      >
+                        {demoState === 'output' && planDone ? 'Replay Simulation' : ''}
+                      </button>
+                  </div>
+                </div>
             </div>
-            <div className="mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        </div>
+
+        {/* Features Grid */}
+        <section className="w-full max-w-7xl mx-auto py-32">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {features.map((feature, i) => (
-                    <div key={feature.title} className={`glass-pane p-6 rounded-2xl text-left animate-slide-in-up stagger-${i + 3} opacity-0`}>
-                        <div className="w-12 h-12 bg-indigo-600/20 text-indigo-300 rounded-lg flex items-center justify-center mb-4">
-                            <feature.icon className="w-7 h-7" />
+                    <div key={feature.title} className={`group bg-white/5 hover:bg-white/10 border border-white/5 hover:border-indigo-500/30 p-8 rounded-3xl transition-all duration-300 animate-slide-in-up stagger-${i + 3} opacity-0`}>
+                        <div className="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-black/50">
+                            <feature.icon className="w-7 h-7 text-indigo-400" />
                         </div>
-                        <h3 className="text-lg font-bold text-white">{feature.title}</h3>
-                        <p className="mt-2 text-gray-400 text-sm">{feature.description}</p>
-                    </div>
-                ))}
-            </div>
-        </section>
-
-        {/* Testimonials Section */}
-        <section className="w-full max-w-7xl mx-auto py-24 sm:py-32">
-            <div className="text-center max-w-2xl mx-auto">
-                 <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl animate-slide-in-up stagger-1 opacity-0">Loved by Innovators & Builders</h2>
-                 <p className="mt-6 text-lg leading-8 text-gray-300 animate-slide-in-up stagger-2 opacity-0">
-                    Don't just take our word for it. Here's how professionals are leveraging GoalForge AI to achieve their goals faster.
-                 </p>
-            </div>
-            <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
-                {testimonials.map((testimonial, i) => (
-                    <div key={testimonial.name} className={`glass-pane p-8 rounded-2xl flex flex-col animate-slide-in-up stagger-${i + 3} opacity-0`}>
-                        <p className="text-gray-300 flex-grow">"{testimonial.quote}"</p>
-                        <div className="mt-6 pt-6 border-t border-white/10">
-                            <p className="font-bold text-white">{testimonial.name}</p>
-                            <p className="text-sm text-indigo-300">{testimonial.title}</p>
-                        </div>
+                        <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
                     </div>
                 ))}
             </div>
         </section>
       </main>
 
-      <footer className="w-full z-10 border-t border-white/10 mt-20 py-16 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 text-center md:text-left">
-            <div className="flex flex-col items-center md:items-start">
-                <AffiliateMarketingLogo className="w-24 h-24 mb-4" />
-                <p className="text-gray-400 text-sm max-w-xs">
-                    GoalForge AI is an unfair advantage created by Alexios Papaioannou, owner of <a href="https://affiliatemarketingforsuccess.com" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">affiliatemarketingforsuccess.com</a>
+      {/* FOOTER */}
+      <footer className="w-full z-10 border-t border-white/10 bg-black/40 backdrop-blur-xl pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12">
+            
+            {/* Brand Column */}
+            <div className="md:col-span-5 flex flex-col items-center md:items-start space-y-6">
+                <a href="https://affiliatemarketingforsuccess.com" target="_blank" rel="noopener noreferrer" className="block hover:opacity-80 transition-opacity">
+                    <img 
+                        src="https://affiliatemarketingforsuccess.com/wp-content/uploads/2023/03/cropped-Affiliate-Marketing-for-Success-Logo-Edited.png?lm=6666FEE0" 
+                        alt="Affiliate Marketing for Success" 
+                        className="h-24 w-auto object-contain"
+                    />
+                </a>
+                <p className="text-gray-400 text-sm text-center md:text-left leading-relaxed">
+                    This App is Created by <strong className="text-white">Alexios Papaioannou</strong>,<br/> 
+                    Owner of <a href="https://affiliatemarketingforsuccess.com" className="text-indigo-400 hover:text-indigo-300 transition-colors">affiliatemarketingforsuccess.com</a>
                 </p>
+                <div className="flex gap-4">
+                     {/* Social icons could go here */}
+                </div>
             </div>
-            <div className="flex flex-col items-center md:items-start justify-center">
-                <h4 className="font-bold text-white mb-4">Learn more from the playbook:</h4>
-                <nav className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 text-gray-400">
-                    <a href="https://affiliatemarketingforsuccess.com/category/affiliate-marketing/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Affiliate Marketing</a>
-                    <a href="https://affiliatemarketingforsuccess.com/category/ai/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">AI</a>
-                    <a href="https://affiliatemarketingforsuccess.com/category/seo/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">SEO</a>
-                    <a href="https://affiliatemarketingforsuccess.com/category/blogging/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Blogging</a>
-                    <a href="https://affiliatemarketingforsuccess.com/category/reviews/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Reviews</a>
+
+            {/* Links Column */}
+            <div className="md:col-span-7 flex flex-col justify-center">
+                <h4 className="font-bold text-white text-lg mb-6 text-center md:text-left border-b border-white/10 pb-4 inline-block md:w-full">Explore the Ecosystem</h4>
+                <nav className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-4 text-sm font-medium">
+                    <a href="https://affiliatemarketingforsuccess.com/affiliate-marketing" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-indigo-400 transition-colors flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Affiliate Marketing
+                    </a>
+                    <a href="https://affiliatemarketingforsuccess.com/ai" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-purple-400 transition-colors flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> AI
+                    </a>
+                    <a href="https://affiliatemarketingforsuccess.com/seo" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-400 transition-colors flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> SEO
+                    </a>
+                    <a href="https://affiliatemarketingforsuccess.com/blogging" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-400 transition-colors flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Blogging
+                    </a>
+                    <a href="https://affiliatemarketingforsuccess.com/review" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Reviews
+                    </a>
                 </nav>
+                
+                <div className="mt-8 bg-indigo-900/20 border border-indigo-500/20 rounded-xl p-6 text-center md:text-left">
+                    <p className="text-indigo-200 text-sm mb-3">Ready to scale your business?</p>
+                    <a 
+                        href="https://seo-hub.affiliatemarketingforsuccess.com/"
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-white font-bold hover:text-indigo-300 transition-colors inline-flex items-center gap-2"
+                    >
+                        Unlock Your Complete AI-Powered SEO Arsenal &rarr;
+                    </a>
+                </div>
             </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-            <p>&copy; {new Date().getFullYear()} GoalForge AI. All rights reserved.</p>
+        
+        <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-white/5 text-center text-gray-600 text-xs px-6">
+            <p>&copy; {new Date().getFullYear()} GoalForge AI. An Unfair Advantage.</p>
         </div>
       </footer>
     </div>

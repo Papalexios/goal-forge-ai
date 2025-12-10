@@ -70,3 +70,13 @@ export interface OptimizedSchedule {
   summary: string;
   schedule: ScheduleBlock[];
 }
+
+// SOTA Gamification Types
+export interface UserStats {
+  level: number;
+  currentXP: number;
+  nextLevelXP: number;
+  streakDays: number;
+  lastActiveDate: string;
+  totalTasksCompleted: number;
+}

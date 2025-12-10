@@ -1,9 +1,10 @@
 
-import { Project, Plan, Task, Status } from '../types';
+import { Project, Plan, Task, Status, UserStats } from '../types';
 
 const PROJECTS_KEY = 'goalforge_projects';
 const DAILY_PLAN_PREFIX = 'goalforge_daily_plan_';
 const RECURRING_TASKS_KEY = 'goalforge_recurring_tasks';
+const USER_STATS_KEY = 'goalforge_user_stats_v1';
 
 // Helper to get the storage key for a specific date
 const getDailyPlanKey = (date: Date): string => {
@@ -68,7 +69,6 @@ export const getRecurringTasks = (): Task[] => {
 
 export const saveRecurringTask = (task: Task): void => {
     const tasks = getRecurringTasks();
-    // Use title as a unique key for templates to avoid dupes if ID changes during generation
     const existingIndex = tasks.findIndex(t => t.id === task.id || (t.title === task.title && t.recurrence === task.recurrence));
     
     if (existingIndex > -1) {
@@ -92,7 +92,6 @@ export const initializeDailyPlan = (date: Date): Plan => {
     
     // 1. Check for Rollover (Incomplete tasks from previous active days)
     let rolloverTasks: Task[] = [];
-    // Scan for the most recent previous plan (up to 7 days back for efficiency)
     for (let i = 1; i <= 7; i++) {
         const prevDate = new Date(date);
         prevDate.setDate(date.getDate() - i);
@@ -101,13 +100,10 @@ export const initializeDailyPlan = (date: Date): Plan => {
         
         if (prevPlanJson) {
             const prevPlan: Plan = JSON.parse(prevPlanJson);
-            // Found the last active day. Grab incomplete tasks.
             rolloverTasks = prevPlan.filter(t => t.status !== Status.Done).map(t => ({
                 ...t,
-                // Optional: Tag them visually or conceptually? 
-                // keeping them as is for seamless rollover.
             }));
-            break; // Stop after finding the most recent day
+            break; 
         }
     }
 
@@ -120,38 +116,23 @@ export const initializeDailyPlan = (date: Date): Plan => {
         const startDate = template.startDate ? new Date(template.startDate) : new Date();
         
         switch (template.recurrence) {
-            case 'daily':
-                matches = true;
-                break;
-            case 'weekly':
-                matches = date.getDay() === startDate.getDay();
-                break;
-            case 'monthly':
-                matches = date.getDate() === startDate.getDate();
-                break;
-            case 'yearly':
-                matches = date.getMonth() === startDate.getMonth() && date.getDate() === startDate.getDate();
-                break;
+            case 'daily': matches = true; break;
+            case 'weekly': matches = date.getDay() === startDate.getDay(); break;
+            case 'monthly': matches = date.getDate() === startDate.getDate(); break;
+            case 'yearly': matches = date.getMonth() === startDate.getMonth() && date.getDate() === startDate.getDate(); break;
         }
 
         if (matches) {
-            // Create a FRESH instance for today based on the template
-            // Check if this task is already in rollover to avoid duplicates?
-            // If I have a daily task "Gym", and I missed yesterday's "Gym" (rollover),
-            // I now have 2 "Gym" tasks. This is technically correct (debt + today's).
             todaysRecurringTasks.push({
                 ...template,
-                id: `recurring_${Date.now()}_${Math.floor(Math.random()*1000)}`, // New ID
-                status: Status.ToDo, // Always fresh
+                id: `recurring_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+                status: Status.ToDo,
                 startDate: new Date().toISOString()
             });
         }
     });
 
-    // 3. Combine
     const combinedPlan = [...rolloverTasks, ...todaysRecurringTasks];
-    
-    // Save initialized plan
     saveDailyPlan(date, combinedPlan);
     return combinedPlan;
 };
@@ -163,7 +144,6 @@ export const getDailyPlan = (date: Date): Plan => {
         if (planJson) {
             return JSON.parse(planJson);
         } else {
-            // No plan for today? Initialize it with Rollover and Recurrence logic!
             return initializeDailyPlan(date);
         }
     } catch (error) {
@@ -179,4 +159,67 @@ export const saveDailyPlan = (date: Date, plan: Plan): void => {
     } catch (error) {
         console.error(`Failed to save daily plan for ${key}`, error);
     }
+};
+
+// --- Gamification Storage ---
+
+const INITIAL_STATS: UserStats = {
+    level: 1,
+    currentXP: 0,
+    nextLevelXP: 100,
+    streakDays: 0,
+    lastActiveDate: new Date().toISOString(),
+    totalTasksCompleted: 0
+};
+
+export const getUserStats = (): UserStats => {
+    try {
+        const stats = localStorage.getItem(USER_STATS_KEY);
+        if (!stats) return INITIAL_STATS;
+        return JSON.parse(stats);
+    } catch (e) {
+        return INITIAL_STATS;
+    }
+};
+
+export const addXP = (amount: number): { stats: UserStats, leveledUp: boolean } => {
+    const stats = getUserStats();
+    let newXP = stats.currentXP + amount;
+    let newLevel = stats.level;
+    let nextLevelXP = stats.nextLevelXP;
+    let leveledUp = false;
+
+    // Check Streak
+    const today = new Date().toDateString();
+    const lastActive = new Date(stats.lastActiveDate).toDateString();
+    
+    if (today !== lastActive) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (lastActive === yesterday.toDateString()) {
+            stats.streakDays += 1;
+        } else {
+            stats.streakDays = 1; // Reset if missed a day
+        }
+        stats.lastActiveDate = new Date().toISOString();
+    }
+
+    // Level Up Logic (Simple exponential curve)
+    while (newXP >= nextLevelXP) {
+        newXP -= nextLevelXP;
+        newLevel += 1;
+        nextLevelXP = Math.floor(nextLevelXP * 1.2); // 20% harder each level
+        leveledUp = true;
+    }
+
+    const newStats: UserStats = {
+        ...stats,
+        level: newLevel,
+        currentXP: newXP,
+        nextLevelXP,
+        totalTasksCompleted: stats.totalTasksCompleted + 1
+    };
+
+    localStorage.setItem(USER_STATS_KEY, JSON.stringify(newStats));
+    return { stats: newStats, leveledUp };
 };
