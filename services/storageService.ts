@@ -6,6 +6,16 @@ const DAILY_PLAN_PREFIX = 'goalforge_daily_plan_';
 const RECURRING_TASKS_KEY = 'goalforge_recurring_tasks';
 const USER_STATS_KEY = 'goalforge_user_stats_v1';
 
+// --- Event Driven Architecture Support ---
+export const STATS_UPDATED_EVENT = 'goalforge_stats_updated';
+
+const dispatchStatsUpdate = (stats: UserStats) => {
+    if (typeof window !== 'undefined') {
+        const event = new CustomEvent(STATS_UPDATED_EVENT, { detail: stats });
+        window.dispatchEvent(event);
+    }
+};
+
 // Helper to get the storage key for a specific date
 const getDailyPlanKey = (date: Date): string => {
     const isoDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -221,5 +231,6 @@ export const addXP = (amount: number): { stats: UserStats, leveledUp: boolean } 
     };
 
     localStorage.setItem(USER_STATS_KEY, JSON.stringify(newStats));
+    dispatchStatsUpdate(newStats); // Dispatch event!
     return { stats: newStats, leveledUp };
 };

@@ -9,7 +9,7 @@ import FocusModeOverlay from './components/FocusModeOverlay';
 import { GoogleAuthProvider } from './contexts/GoogleAuth';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { GoalForgeAILogo, KanbanIcon, BrainCircuitIcon, CogIcon, ClipboardCheckIcon, FocusIcon } from './components/icons';
-import { getUserStats } from './services/storageService';
+import { getUserStats, STATS_UPDATED_EVENT } from './services/storageService';
 import { UserStats } from './types';
 
 type Screen = 'hero' | 'dashboard' | 'assistant' | 'settings' | 'daily_planner';
@@ -20,36 +20,46 @@ const App: React.FC = () => {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [userStats, setUserStats] = useState<UserStats>(getUserStats());
 
-  const nav = (screen: Screen, projectId: string | null = null) => setView({ screen, projectId });
+  const vibrate = () => {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(10);
+      }
+  };
+
+  const nav = (screen: Screen, projectId: string | null = null) => {
+      vibrate();
+      setView({ screen, projectId });
+  };
 
   // Keyboard Shortcuts Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-        // Cmd+K or Ctrl+K for Quick Action (Here just focusing/navigating for now)
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
             e.preventDefault();
-            nav('assistant'); // Quick jump to AI
+            nav('assistant'); 
         }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Poll for stats updates (Simple event bus simulation)
+  // Event Listener for Stats (Replaces Polling)
   useEffect(() => {
-      const interval = setInterval(() => {
-          const current = getUserStats();
-          // Only update if changed to avoid renders
-          if (JSON.stringify(current) !== JSON.stringify(userStats)) {
-              setUserStats(current);
-          }
-      }, 1000);
-      return () => clearInterval(interval);
-  }, [userStats]);
+      const handleStatsUpdate = (event: Event) => {
+          const customEvent = event as CustomEvent<UserStats>;
+          setUserStats(customEvent.detail);
+      };
+      
+      window.addEventListener(STATS_UPDATED_EVENT, handleStatsUpdate);
+      // Initial fetch
+      setUserStats(getUserStats());
+
+      return () => window.removeEventListener(STATS_UPDATED_EVENT, handleStatsUpdate);
+  }, []);
 
   // Persistent Sidebar Component (Desktop)
   const Sidebar = () => (
-    <div className="hidden lg:flex flex-col w-20 hover:w-64 transition-all duration-300 bg-gray-900 border-r border-white/5 h-screen fixed left-0 top-0 z-40 group overflow-hidden">
+    <div className="hidden lg:flex flex-col w-20 hover:w-64 transition-all duration-300 bg-gray-900/90 backdrop-blur-xl border-r border-white/5 h-screen fixed left-0 top-0 z-40 group overflow-hidden shadow-2xl">
         <div className="p-6 flex items-center gap-4 mb-8">
             <GoalForgeAILogo className="w-8 h-8 flex-shrink-0"/>
             <span className="font-bold text-xl text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">GoalForge</span>
@@ -86,27 +96,31 @@ const App: React.FC = () => {
     </div>
   );
 
-  // Bottom Navigation Component (Mobile)
+  // Floating Dock Navigation Component (Mobile SOTA)
   const MobileNav = () => (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gray-900/80 backdrop-blur-lg border-t border-white/10 z-50 pb-safe">
-        <div className="flex justify-around items-center p-2">
+    <div className="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+        <div className="bg-black/40 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] flex justify-between items-center p-1.5 pb-safe pointer-events-auto max-w-sm w-full ring-1 ring-white/5">
             {[
                 { id: 'dashboard', icon: KanbanIcon, label: 'Home' },
                 { id: 'daily_planner', icon: ClipboardCheckIcon, label: 'Planner' },
                 { id: 'assistant', icon: BrainCircuitIcon, label: 'AI' },
                 { id: 'settings', icon: CogIcon, label: 'Config' },
-            ].map((item) => (
-                <button
-                    key={item.id}
-                    onClick={() => nav(item.id as Screen)}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-300 ${view.screen === item.id ? 'text-indigo-400' : 'text-gray-500'}`}
-                >
-                    <div className={`p-1 rounded-full ${view.screen === item.id ? 'bg-indigo-500/20' : 'bg-transparent'}`}>
-                        <item.icon className="w-6 h-6"/>
-                    </div>
-                    <span className="text-[10px] font-medium">{item.label}</span>
-                </button>
-            ))}
+            ].map((item) => {
+                const isActive = view.screen === item.id;
+                return (
+                    <button
+                        key={item.id}
+                        onClick={() => nav(item.id as Screen)}
+                        className={`relative flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-all duration-300 active:scale-90 ${isActive ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                    >
+                        {isActive && (
+                            <div className="absolute inset-0 bg-white/10 rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] animate-pulse-slow"></div>
+                        )}
+                        <item.icon className={`w-6 h-6 z-10 transition-all duration-300 ${isActive ? 'scale-110 text-indigo-300 drop-shadow-[0_0_8px_rgba(165,180,252,0.5)]' : ''}`}/>
+                        {isActive && <div className="w-1 h-1 rounded-full bg-indigo-400 mt-1 shadow-[0_0_5px_currentColor]"></div>}
+                    </button>
+                );
+            })}
         </div>
     </div>
   );
@@ -125,14 +139,24 @@ const App: React.FC = () => {
   return (
     <SettingsProvider>
       <GoogleAuthProvider>
-          <div className="bg-[#0a0a0a] text-white min-h-screen font-sans selection:bg-indigo-500/30">
+          <div className="bg-[#050505] text-white min-h-screen font-sans selection:bg-indigo-500/30 overflow-hidden relative">
+             {/* Noise Texture Overlay */}
+             <div className="bg-noise"></div>
+
+             {/* Background Effects */}
+             <div className="fixed inset-0 z-0 pointer-events-none">
+                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/10 rounded-full blur-[120px]"></div>
+                 <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-indigo-900/10 rounded-full blur-[120px]"></div>
+             </div>
+
              {view.screen !== 'hero' && <Sidebar />}
              
              {isFocusMode && <FocusModeOverlay onExit={() => setIsFocusMode(false)} />}
 
-             <div className={`min-h-screen transition-all duration-300 ${view.screen !== 'hero' ? 'lg:ml-20 pb-24 lg:pb-0' : ''}`}>
+             <div className={`relative z-10 min-h-screen transition-all duration-300 ${view.screen !== 'hero' ? 'lg:ml-20 pb-32 lg:pb-0' : ''}`}>
                  {renderScreen()}
              </div>
+             
              {view.screen !== 'hero' && <MobileNav />}
           </div>
       </GoogleAuthProvider>

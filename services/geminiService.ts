@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { Plan, Project, Task, OptimizedSchedule, AIProvider } from '../types';
 import { getSettings } from './settingsService';
@@ -33,62 +34,94 @@ const planGenerationSchema = {
 
 const getApiEndpoint = (provider: AIProvider): string => {
     switch (provider) {
-        case 'openai':
-            return 'https://api.openai.com/v1/chat/completions';
-        case 'groq':
-            return 'https://api.groq.com/openai/v1/chat/completions';
+        case 'openai': return 'https://api.openai.com/v1/chat/completions';
+        case 'groq': return 'https://api.groq.com/openai/v1/chat/completions';
         case 'anthropic': 
         case 'openrouter':
-        default:
-            return 'https://openrouter.ai/api/v1/chat/completions';
+        default: return 'https://openrouter.ai/api/v1/chat/completions';
+    }
+}
+
+// --- UTILITY: Retry with Exponential Backoff and Error Mapping ---
+async function retryOperation<T>(operation: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+    try {
+        return await operation();
+    } catch (error: any) {
+        // Map error to user-friendly message immediately if terminal
+        const msg = error.message || '';
+        if (msg.includes('401') || msg.includes('INVALID_ARGUMENT')) {
+             throw new Error("Authentication Failed: The API key provided is invalid or expired. Please check your Settings.");
+        }
+        if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+            // Only retry 429 if we have retries left
+            if (retries > 0) {
+                 console.warn(`Rate limited, retrying in ${delay}ms...`, error);
+                 await new Promise(resolve => setTimeout(resolve, delay));
+                 return retryOperation(operation, retries - 1, delay * 2);
+            }
+            throw new Error("High Traffic: The AI model is currently overloaded. Please try again in a minute.");
+        }
+        
+        if (retries <= 0) throw error;
+        
+        // General network retry
+        if (error.status >= 500 || msg.includes('FetchError') || msg.includes('Failed to fetch')) {
+             console.warn(`Network error, retrying in ${delay}ms...`, error);
+             await new Promise(resolve => setTimeout(resolve, delay));
+             return retryOperation(operation, retries - 1, delay * 2);
+        }
+
+        throw error;
     }
 }
 
 const generatePlanWithOpenAICompat = async (goal: string): Promise<Plan> => {
-    const settings = getSettings();
-    const provider = settings.activeProvider;
-    const config = settings.providers[provider];
+    return retryOperation(async () => {
+        const settings = getSettings();
+        const provider = settings.activeProvider;
+        const config = settings.providers[provider];
 
-    if (!config || !config.apiKey) {
-        throw new Error(`API key for ${provider} is not configured.`);
-    }
+        if (!config || !config.apiKey) {
+            throw new Error(`API key for ${provider} is not configured.`);
+        }
 
-    const endpoint = getApiEndpoint(provider);
-    const systemPrompt = `You are an expert project manager. Break down the goal into a detailed plan. Output JSON only. Keys: id (uuid), title, description, priority (High/Medium/Low), timeEstimate, status (To Do), subtasks (array of {id, text, completed}).`;
+        const endpoint = getApiEndpoint(provider);
+        const systemPrompt = `You are an expert project manager. Break down the goal into a detailed plan. Output JSON only. Keys: id (uuid), title, description, priority (High/Medium/Low), timeEstimate, status (To Do), subtasks (array of {id, text, completed}).`;
 
-    const body = {
-        model: config.model,
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `My goal is: "${goal}"` }
-        ],
-    };
+        const body = {
+            model: config.model,
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `My goal is: "${goal}"` }
+            ],
+        };
 
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${config.apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.origin,
-        },
-        body: JSON.stringify(body),
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${config.apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': window.location.origin,
+            },
+            body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`Request to ${provider} failed (${response.status}): ${errorBody}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content;
+
+        if (!content) throw new Error("Empty response.");
+        
+        try {
+            return JSON.parse(content) as Plan;
+        } catch (e) {
+            throw new Error("Invalid JSON format from provider.");
+        }
     });
-
-    if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`Request to ${provider} failed: ${errorBody}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) throw new Error("Empty response.");
-    
-    try {
-        return JSON.parse(content) as Plan;
-    } catch (e) {
-        throw new Error("Invalid JSON format from provider.");
-    }
 }
 
 
@@ -97,54 +130,43 @@ export const generatePlan = async (goal: string): Promise<Plan> => {
     const provider = settings.activeProvider;
 
     if (provider === 'gemini') {
-        // CRITICAL FIX: Always use process.env.API_KEY for Gemini
         const apiKey = process.env.API_KEY;
         
-        try {
-            if (!apiKey) {
-                throw new Error("Gemini API Key is missing from environment variables.");
-            }
+        return retryOperation(async () => {
+            if (!apiKey) throw new Error("Gemini API Key is missing. Please ensure the application is configured correctly.");
             
             const ai = new GoogleGenAI({ apiKey: apiKey });
             const now = new Date().toISOString();
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-pro', // Use a robust model for planning
+                model: 'gemini-2.5-pro',
                 contents: `Current Date/Time: ${now}. My goal is: "${goal}".`,
                 config: {
-                    systemInstruction: `You are an elite Project Manager and Productivity Expert. 
-                    1. Break down the goal into a comprehensive, long-term project plan consisting of detailed tasks.
-                    2. Use productivity principles like "Deep Work" and "Logical Sequencing".
-                    3. CRITICAL: Assign a specific, realistic ISO 8601 "startDate" to EACH task. Start from the Current Date provided. Spread tasks out over days or weeks depending on the scope (don't pile everything on day 1). 
-                    4. Ensure "timeEstimate" is specific (e.g. "2 hours", "45 min").
+                    systemInstruction: `You are an elite Project Manager. 
+                    1. Break down the goal into a comprehensive project plan.
+                    2. Use productivity principles like "Deep Work".
+                    3. CRITICAL: Assign a specific, realistic ISO 8601 "startDate" to EACH task. Start from Current Date.
+                    4. Ensure "timeEstimate" is specific.
                     5. Group tasks logically.
                     6. Ensure output is valid JSON matching the schema.`,
                     responseMimeType: "application/json",
                     responseSchema: planGenerationSchema,
-                    thinkingConfig: { thinkingBudget: 2048 }, // Increased budget for better scheduling logic
+                    thinkingConfig: { thinkingBudget: 2048 },
                 },
             });
 
             const jsonString = response.text.trim();
-            const plan = JSON.parse(jsonString);
-            return plan as Plan;
-        } catch (error) {
-            console.error("Gemini Plan Generation Error:", error);
-            throw error;
-        }
+            return JSON.parse(jsonString) as Plan;
+        });
     } else {
-         try {
-            return await generatePlanWithOpenAICompat(goal);
-        } catch (error) {
-            console.error(`Error with ${provider}:`, error);
-            throw error;
-        }
+         return generatePlanWithOpenAICompat(goal);
     }
 };
 
 export const generateTtsAudio = async (text: string): Promise<string> => {
     const apiKey = process.env.API_KEY;
-     if (!apiKey) throw new Error("API Key missing.");
-    try {
+    if (!apiKey) throw new Error("API Key missing.");
+    
+    return retryOperation(async () => {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
@@ -162,9 +184,7 @@ export const generateTtsAudio = async (text: string): Promise<string> => {
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (!base64Audio) throw new Error("No audio data.");
         return base64Audio;
-    } catch (error) {
-        throw new Error("TTS generation failed.");
-    }
+    });
 };
 
 export const getAiSummary = async (projects: Project[]): Promise<string> => {
@@ -179,7 +199,7 @@ export const getAiSummary = async (projects: Project[]): Promise<string> => {
 
     if (projects.length === 0) return "No projects yet. Create one to get started!";
 
-    try {
+    return retryOperation(async () => {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -187,15 +207,13 @@ export const getAiSummary = async (projects: Project[]): Promise<string> => {
             config: { systemInstruction: 'You are a high-energy productivity coach. Keep it brief (under 50 words).' }
         });
         return response.text;
-    } catch (error) {
-        throw new Error("Summary generation failed.");
-    }
+    });
 };
 
 export const generateSubtaskAssistance = async (taskTitle: string, subtaskText: string): Promise<string> => {
     const apiKey = process.env.API_KEY;
      if (!apiKey) throw new Error("API Key missing.");
-    try {
+    return retryOperation(async () => {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -203,15 +221,13 @@ export const generateSubtaskAssistance = async (taskTitle: string, subtaskText: 
             config: { systemInstruction: "Be extremely concise and actionable." }
         });
         return response.text;
-    } catch (error) {
-        throw new Error("Assistance failed.");
-    }
+    });
 };
 
 export const generateSubtasksForTask = async (taskTitle: string, taskDescription: string): Promise<{ text: string }[] > => {
     const apiKey = process.env.API_KEY;
      if (!apiKey) throw new Error("API Key missing.");
-    try {
+    return retryOperation(async () => {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
@@ -225,9 +241,7 @@ export const generateSubtasksForTask = async (taskTitle: string, taskDescription
             },
         });
         return JSON.parse(response.text.trim());
-    } catch (error) {
-        throw new Error("Subtask generation failed.");
-    }
+    });
 };
 
 export const generateDailySchedule = async (tasks: Task[]): Promise<OptimizedSchedule> => {
@@ -236,7 +250,7 @@ export const generateDailySchedule = async (tasks: Task[]): Promise<OptimizedSch
     
     const taskData = tasks.map(t => `ID: ${t.id}, Task: ${t.title}, Est: ${t.timeEstimate}, Priority: ${t.priority}`).join('\n');
     
-    try {
+    return retryOperation(async () => {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
             model: "gemini-2.5-pro",
@@ -266,7 +280,5 @@ export const generateDailySchedule = async (tasks: Task[]): Promise<OptimizedSch
         });
 
         return JSON.parse(response.text.trim()) as OptimizedSchedule;
-    } catch (error) {
-        throw new Error("Schedule optimization failed.");
-    }
+    });
 };

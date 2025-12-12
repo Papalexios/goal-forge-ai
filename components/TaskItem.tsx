@@ -1,5 +1,5 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, memo } from 'react';
 import { Task, Subtask, Priority, Status } from '../types';
 import { CalendarIcon, EditIcon, SparklesIcon, PlusIcon, LoaderIcon, RepeatIcon, ClockIcon } from './icons';
 import AIAssistModal from './AIAssistModal';
@@ -21,7 +21,8 @@ const priorityColors: Record<Priority, string> = {
 
 const inputStyles = "w-full p-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-white";
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
+// Memoize TaskItem to prevent re-renders of the entire board on single item updates
+const TaskItem: React.FC<TaskItemProps> = memo(({ task, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTask, setEditedTask] = useState<Task>(task);
   const [assistingSubtask, setAssistingSubtask] = useState<Subtask | null>(null);
@@ -32,7 +33,12 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
 
   const { gapi, token, isSignedIn, signIn } = useContext(GoogleAuthContext);
 
+  const vibrate = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+  };
+
   const handleSubtaskToggle = (subtaskId: string) => {
+    vibrate();
     const updatedSubtasks = task.subtasks.map(st =>
       st.id === subtaskId ? { ...st, completed: !st.completed } : st
     );
@@ -57,6 +63,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
   };
 
   const handleStatusToggle = () => {
+    vibrate();
     const newStatus = task.status === Status.Done ? Status.ToDo : Status.Done;
     if (newStatus === Status.Done) {
         triggerXP(25); // Main Task XP
@@ -65,6 +72,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
   };
   
   const handlePriorityCycle = () => {
+    vibrate();
     const priorities = [Priority.Low, Priority.Medium, Priority.High];
     const currentIndex = priorities.indexOf(task.priority);
     const nextIndex = (currentIndex + 1) % priorities.length;
@@ -92,6 +100,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
   };
 
   const handleAddToCalendar = async () => {
+    vibrate();
     if (task.googleCalendarEventId) {
         window.open('https://calendar.google.com', '_blank');
         return;
@@ -139,6 +148,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
   };
 
   const handleEditToggle = () => {
+    vibrate();
     if (!isEditing) {
         setEditedTask(task);
     }
@@ -146,6 +156,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
   };
 
   const handleSave = () => {
+    vibrate();
     // Handle Recurrence Logic
     if (editedTask.recurrence !== task.recurrence) {
         if (editedTask.recurrence) {
@@ -175,6 +186,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
     };
     onUpdate({ ...task, subtasks: [...task.subtasks, newSubtask] });
     setNewSubtaskText('');
+    vibrate();
   };
 
   if (isEditing) {
@@ -242,91 +254,94 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
         taskTitle={task.title}
         subtaskText={assistingSubtask?.text || ''}
       />
-      <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:border-indigo-500 transition-all duration-200 shadow-md relative overflow-hidden">
+      <div className="bg-gray-900/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 hover:border-indigo-500/50 transition-all duration-300 shadow-md relative overflow-hidden group">
         {showXPPopup && (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none animate-bounce">
-                <span className="text-yellow-400 font-bold text-2xl drop-shadow-lg shadow-black">+XP</span>
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none animate-bounce">
+                <span className="text-yellow-400 font-black text-3xl drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]">+XP</span>
             </div>
         )}
         <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
           <div className="flex items-start gap-3 flex-grow">
             <button
                 onClick={handleStatusToggle}
-                className={`flex-shrink-0 mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900 ${
+                className={`flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900 active:scale-90 ${
                     task.status === Status.Done
-                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]'
                     : 'border-gray-500 hover:border-indigo-400 bg-transparent'
                 }`}
                 aria-label={task.status === Status.Done ? "Mark as not done" : "Mark as done"}
             >
                 {task.status === Status.Done && (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                     </svg>
                 )}
             </button>
             <div>
                 <div className="flex items-center gap-2">
-                    <h3 className={`text-lg font-bold transition-colors ${task.status === Status.Done ? 'text-gray-500 line-through decoration-2' : 'text-white'}`}>{task.title}</h3>
+                    <h3 className={`text-lg font-bold transition-all ${task.status === Status.Done ? 'text-gray-500 line-through decoration-2 decoration-gray-600' : 'text-white'}`}>{task.title}</h3>
                     {task.recurrence && (
-                        <span title={`Repeats ${task.recurrence}`} className="text-indigo-400">
-                            <RepeatIcon className="w-4 h-4" />
+                        <span title={`Repeats ${task.recurrence}`} className="text-indigo-400 bg-indigo-900/30 rounded p-0.5">
+                            <RepeatIcon className="w-3.5 h-3.5" />
                         </span>
                     )}
                 </div>
-                <p className={`text-sm mt-1 transition-colors ${task.status === Status.Done ? 'text-gray-600' : 'text-gray-400'}`}>{task.description}</p>
+                <p className={`text-sm mt-1 transition-colors leading-relaxed ${task.status === Status.Done ? 'text-gray-600' : 'text-gray-400'}`}>{task.description}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-4 flex-shrink-0 mt-2 sm:mt-0 pl-9 sm:pl-0">
-            <button onClick={handlePriorityCycle} title="Cycle priority" className={`text-xs font-bold px-2 py-1 rounded-full text-white border transition-transform hover:scale-110 ${priorityColors[task.priority]}`}>
+          <div className="flex items-center gap-3 flex-shrink-0 mt-2 sm:mt-0 pl-9 sm:pl-0">
+            <button onClick={handlePriorityCycle} title="Cycle priority" className={`text-[10px] uppercase font-bold px-3 py-1 rounded-full text-white border transition-transform hover:scale-110 active:scale-95 shadow-sm min-w-[44px] min-h-[24px] flex items-center justify-center ${priorityColors[task.priority]}`}>
               {task.priority}
             </button>
-            <span className="text-sm text-gray-300 font-mono bg-gray-700 px-2 py-1 rounded">{task.timeEstimate}</span>
+            <span className="text-xs text-gray-300 font-mono bg-white/5 px-2 py-1 rounded border border-white/5">{task.timeEstimate}</span>
             <button 
                 onClick={isSignedIn ? handleAddToCalendar : fallbackAddToCalendar} 
                 title={task.googleCalendarEventId ? "View on Google Calendar" : "Add to Google Calendar"} 
-                className={`transition-colors ${task.googleCalendarEventId ? 'text-green-400 hover:text-green-300' : 'text-gray-400 hover:text-white'}`}
+                className={`transition-all active:scale-90 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/5 ${task.googleCalendarEventId ? 'text-green-400 hover:text-green-300 drop-shadow-[0_0_5px_rgba(74,222,128,0.5)]' : 'text-gray-400 hover:text-white'}`}
                 disabled={isAddingToCalendar}
             >
-              {isAddingToCalendar ? <LoaderIcon className="w-5 h-5 animate-spin" /> : <CalendarIcon className="w-5 h-5" />}
+              {isAddingToCalendar ? <LoaderIcon className="w-6 h-6 animate-spin" /> : <CalendarIcon className="w-6 h-6" />}
             </button>
-            <button onClick={handleEditToggle} title="Edit Task" className="text-gray-400 hover:text-white transition-colors">
-              <EditIcon className="w-5 h-5" />
+            <button onClick={handleEditToggle} title="Edit Task" className="text-gray-400 hover:text-white transition-colors active:scale-90 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/5">
+              <EditIcon className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        <div className="mt-4 border-t border-gray-700 pt-3">
+        <div className="mt-4 border-t border-white/5 pt-3">
           <div className="flex justify-between items-center mb-2">
-            <h4 className="text-sm font-semibold text-gray-300">Subtasks</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">Subtasks</h4>
              <button 
                 onClick={handleGenerateSubtasks}
                 disabled={isGeneratingSubtasks}
-                className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 disabled:text-gray-500 disabled:cursor-wait"
+                className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 disabled:text-gray-500 disabled:cursor-wait transition-colors min-h-[44px] px-2"
                 title="Generate subtasks with AI"
             >
-                {isGeneratingSubtasks ? <LoaderIcon className="w-4 h-4 animate-spin"/> : <SparklesIcon className="w-4 h-4"/>}
-                <span>AI Generate</span>
+                {isGeneratingSubtasks ? <LoaderIcon className="w-3 h-3 animate-spin"/> : <SparklesIcon className="w-3 h-3"/>}
+                <span>Auto-Generate</span>
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 mb-3">
             {task.subtasks.map(subtask => (
-              <div key={subtask.id} className="flex items-center justify-between group">
-                <label className="flex items-center gap-3 cursor-pointer flex-grow">
-                  <input
-                    type="checkbox"
-                    checked={subtask.completed}
-                    onChange={() => handleSubtaskToggle(subtask.id)}
-                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded text-indigo-500 focus:ring-indigo-600 focus:ring-2"
-                  />
-                  <span className={`text-sm ${subtask.completed ? 'text-gray-500 line-through' : 'text-gray-200'} group-hover:text-white transition-colors`}>
+              <div key={subtask.id} className="flex items-center justify-between group/sub">
+                <label className="flex items-center gap-3 cursor-pointer flex-grow select-none min-h-[44px]">
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${subtask.completed ? 'bg-indigo-600 border-indigo-600' : 'bg-gray-800 border-gray-600 group-hover/sub:border-indigo-500'}`}>
+                    <input
+                        type="checkbox"
+                        checked={subtask.completed}
+                        onChange={() => handleSubtaskToggle(subtask.id)}
+                        className="hidden"
+                    />
+                    {subtask.completed && <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </div>
+                  <span className={`text-sm ${subtask.completed ? 'text-gray-500 line-through decoration-gray-600' : 'text-gray-300'} group-hover/sub:text-white transition-colors`}>
                     {subtask.text}
                   </span>
                 </label>
                 <button 
                   onClick={() => setAssistingSubtask(subtask)}
-                  className="text-gray-500 hover:text-indigo-400 transition-colors opacity-0 group-hover:opacity-100"
+                  className="text-gray-600 hover:text-indigo-400 transition-colors opacity-0 group-hover/sub:opacity-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   title="AI Assist"
                 >
                   <SparklesIcon className="w-4 h-4"/>
@@ -334,18 +349,18 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
               </div>
             ))}
           </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <input
                 type="text"
                 value={newSubtaskText}
                 onChange={(e) => setNewSubtaskText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
-                placeholder="Add a new subtask..."
-                className="w-full text-sm p-1.5 bg-gray-900/50 border border-gray-600 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-white placeholder-gray-500"
+                placeholder="Add subtask..."
+                className="w-full text-sm p-3 bg-black/20 border border-white/5 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-white placeholder-gray-600"
             />
             <button 
                 onClick={handleAddSubtask}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-md p-1.5 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                className="bg-indigo-600/80 hover:bg-indigo-600 text-white rounded-lg p-3 disabled:bg-gray-700 disabled:cursor-not-allowed transition-all active:scale-95 min-w-[44px]"
                 disabled={!newSubtaskText.trim()}
                 aria-label="Add new subtask"
             >
@@ -356,6 +371,6 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate }) => {
       </div>
     </>
   );
-};
+});
 
 export default TaskItem;

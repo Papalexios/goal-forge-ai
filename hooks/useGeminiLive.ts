@@ -1,5 +1,5 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
-// FIX: Removed unexported member 'LiveSession'. The session object type will be handled by inference or 'any'.
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration } from "@google/genai";
 import { decode, decodeAudioData, createBlob } from '../utils/audioUtils';
 import { Project, Task, Status, Priority } from '../types';
@@ -80,13 +80,35 @@ const completeSubtaskFunc: FunctionDeclaration = {
     },
 };
 
+// Helper: Prune project context to save tokens and improve latency
+const pruneProjectContext = (project: Project): any => {
+    return {
+        id: project.id,
+        goal: project.goal,
+        plan: project.plan.map(t => ({
+            id: t.id,
+            title: t.title,
+            priority: t.priority,
+            status: t.status,
+            // Only send detailed description for active tasks
+            description: t.status === Status.Done ? '[Completed]' : t.description,
+            // Only send incomplete subtasks to reduce noise
+            subtasks: t.subtasks.filter(st => !st.completed).map(st => ({
+                id: st.id,
+                text: st.text
+            })),
+            // Include summary of completed subtasks
+            completedSubtasksCount: t.subtasks.filter(st => st.completed).length
+        }))
+    };
+};
+
 export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCompleted, onError }: UseGeminiLiveProps) => {
     const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
     const [isListening, setIsListening] = useState(false);
     const [userTranscript, setUserTranscript] = useState('');
     const [aiTranscript, setAiTranscript] = useState('');
     
-    // FIX: Replaced 'Promise<LiveSession>' with 'Promise<any>' as LiveSession is not an exported type.
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -153,7 +175,6 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
             for (const func of message.toolCall.functionCalls) {
                 let result = 'Function executed successfully.';
                 try {
-                    // FIX: Cast func.args to 'any' to prevent errors when accessing its properties, as its type is 'unknown'.
                     if (func.name === 'add_task_to_plan' && func.args) {
                         const taskData = (func.args as any).task;
                         if (taskData) {
@@ -205,17 +226,27 @@ export const useGeminiLive = ({ project, onTaskAdded, onTaskEdited, onSubtaskCom
         try {
             const settings = getSettings();
             const geminiConfig = settings.providers.gemini;
-            if (!geminiConfig?.apiKey) {
-                onError("Gemini API key is not configured. Please add it in the Settings page.");
+            // Robust fallback if API key is missing from settings but present in env
+            const apiKey = geminiConfig?.apiKey || process.env.API_KEY;
+
+            if (!apiKey) {
+                onError("Gemini API key is missing. Please configure it in Settings.");
                 setConnectionState('error');
                 cleanupAudio();
                 return;
             }
-            const ai = new GoogleGenAI({ apiKey: geminiConfig.apiKey });
             
+            const ai = new GoogleGenAI({ apiKey });
             outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
             
-            const systemInstruction = `You are GoalForge AI, an expert project manager. The user's project plan is already created. Your role is to assist them in modifying it. Use 'add_task_to_plan' to add new tasks, 'edit_task_in_plan' to modify existing tasks (e.g., change priority, description, or status), and 'complete_subtask' to mark subtasks as complete. Use the provided task and subtask IDs for editing and completion. Keep your spoken responses concise, helpful, and encouraging. The current project context is: ${JSON.stringify(project)}`;
+            // OPTIMIZATION: Use pruned context
+            const prunedContext = pruneProjectContext(project);
+            
+            const systemInstruction = `You are GoalForge AI, an expert project manager. 
+            The user's project is: ${JSON.stringify(prunedContext)}. 
+            Your role is to assist in modifying it. 
+            Use tools to add/edit/complete tasks. 
+            Keep spoken responses concise.`;
 
             sessionPromiseRef.current = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
